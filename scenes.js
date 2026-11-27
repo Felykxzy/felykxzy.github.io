@@ -166,6 +166,30 @@
     g.lineWidth = 5 * u; g.strokeStyle = lg; g.beginPath(); g.arc(cx, cy, R + 2.5 * u, 0, TAU); g.stroke();
     var pu = 1 + .03 * Math.sin(t * 2); g.strokeStyle = "rgba(167,123,255," + (.35 - .15 * Math.sin(t * 2)) + ")"; g.lineWidth = 2 * u; g.beginPath(); g.arc(cx, cy, (R + 14 * u) * pu, 0, TAU); g.stroke();
   }
-  window.SCENES = [s5, s1, s2, s3, s4];
-  window.SCENE_THUMB_T = [1.4, 3.2, 5.1, 6.4, 2.6];
+  /* 6. Секрет: тёмная пустота, глитч и таинственный шар */
+  function s6(g, w, h, t) {
+    var G = geo(w, h), u = G.u, ah = G.ah, i, k;
+    g.fillStyle = "#05040f"; g.fillRect(0, 0, w, h);
+    var cx = w / 2, cy = ah * .44, R = 70 * u;
+    glow(g, cx, cy, R * 3.4, "255,60,90", .16 + .05 * Math.sin(t * 2)); glow(g, cx, cy, R * 2.2, "167,123,255", .22);
+    // шумовые пиксели
+    for (i = 0; i < 90; i++) { var x = rnd(i + 3) * w, y = rnd(i + 40) * ah * 1.1, fl = Math.abs(Math.sin(t * (2 + rnd(i) * 5) + i)); g.fillStyle = "rgba(255,255,255," + (fl * .35 * rnd(i + 9)) + ")"; var sz = (1 + rnd(i + 5) * 3) * u; g.fillRect(x, y, sz, sz); }
+    // кольца-замок
+    for (i = 0; i < 3; i++) { g.save(); g.translate(cx, cy); g.rotate(t * (.35 + i * .2) * (i % 2 ? -1 : 1)); g.strokeStyle = "rgba(255,255,255," + (.22 - i * .05) + ")"; g.lineWidth = 2 * u; g.setLineDash([(18 + i * 10) * u, (12 + i * 6) * u]); g.beginPath(); g.arc(0, 0, R * (1.35 + i * .32), 0, TAU); g.stroke(); g.restore(); }
+    g.setLineDash([]);
+    // шар
+    var og = g.createRadialGradient(cx - R * .3, cy - R * .35, R * .1, cx, cy, R); og.addColorStop(0, "#3b2a78"); og.addColorStop(1, "#0b0820");
+    g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.fillStyle = og; g.fill(); g.lineWidth = 3 * u; g.strokeStyle = "rgba(167,123,255,.7)"; g.stroke();
+    var gl = (Math.sin(t * 7) > .93) ? (rnd(Math.floor(t * 30)) - .5) * 10 * u : 0;
+    g.font = "800 " + R * 1.25 + "px " + FONT; g.textAlign = "center"; g.textBaseline = "middle";
+    g.fillStyle = "rgba(255,60,90,.55)"; g.fillText("?", cx + 3 * u + gl, cy + R * .06); g.fillStyle = "rgba(94,242,255,.55)"; g.fillText("?", cx - 3 * u - gl, cy + R * .06);
+    g.fillStyle = "#fff"; g.fillText("?", cx, cy + R * .06);
+    // «засекреченные» строки
+    for (i = 0; i < 4; i++) { var bw = (80 + rnd(i + 70) * 110) * u, bx = cx - bw / 2, by = ah * .86 + i * 12 * u; g.fillStyle = "rgba(255,255,255," + (.1 + .06 * Math.sin(t + i)) + ")"; rr(g, bx, by, bw, 6 * u, 3 * u); g.fill(); }
+    // бегущая полоса глитча
+    var sy = ((t * .18) % 1.2) * ah; g.fillStyle = "rgba(167,123,255,.07)"; g.fillRect(0, sy, w, 22 * u);
+    for (i = 0; i < ah; i += 4) { g.fillStyle = "rgba(0,0,0,.18)"; g.fillRect(0, i, w, 1); }
+  }
+  window.SCENES = [s5, s1, s2, s3, s4, s6];
+  window.SCENE_THUMB_T = [1.4, 3.2, 5.1, 6.4, 2.6, 4.2];
 })();
