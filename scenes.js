@@ -141,6 +141,6 @@
     g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.fillStyle = "#0c0a1f"; g.fill(); g.lineWidth = 5 * u; g.strokeStyle = lg; g.stroke();
     g.fillStyle = lg; g.font = "800 " + R * 1.05 + "px " + FONT; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("F", cx, cy + R * .06);
   }
-  window.SCENES = [s1, s2, s3, s4, s5];
-  window.SCENE_THUMB_T = [3.2, 5.1, 6.4, 2.6, 1.4];
+  window.SCENES = [s5, s1, s2, s3, s4];
+  window.SCENE_THUMB_T = [1.4, 3.2, 5.1, 6.4, 2.6];
 })();

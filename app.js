@@ -43,6 +43,7 @@
   addEventListener("keydown", function (e) { if (e.key === "ArrowRight") go(cur + 1); else if (e.key === "ArrowLeft") go(cur - 1); });
   addEventListener("wheel", function (e) { if (Math.abs(e.deltaX) > 30 && !deck._w) { go(cur + (e.deltaX > 0 ? 1 : -1)); deck._w = 1; setTimeout(function () { deck._w = 0 }, 500); } }, { passive: true });
   addEventListener("resize", size);
+  var gg = document.getElementById("goG"); if (gg) gg.onclick = function () { go(1); };
   // как установить
   var how = document.getElementById("how"); document.getElementById("ins").onclick = function () { how.classList.add("on"); }; document.getElementById("hx").onclick = function () { how.classList.remove("on"); }; how.addEventListener("click", function (e) { if (e.target === how) how.classList.remove("on"); });
   // рисуем только видимые сцены

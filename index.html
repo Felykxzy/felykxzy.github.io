@@ -56,7 +56,7 @@ header{position:absolute;z-index:5;left:0;right:0;top:0;display:flex;justify-con
 }
 .chips{margin-top:22px;display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:460px}
 .chips a{display:inline-flex;align-items:center;height:44px;padding:0 18px;border-radius:99px;font:800 15px var(--body);color:#fff;text-decoration:none;background:rgba(255,255,255,.13);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-.chips a:last-child{background:var(--c);color:#07061a}
+.chips{margin-top:16px}.chips a:hover{background:rgba(255,255,255,.22)}.go{border:0;cursor:pointer}
 @media (min-width:900px) and (min-aspect-ratio:12/10){.chips{justify-content:flex-start}}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media (prefers-reduced-motion:reduce){.play{animation:none}#deck{transition:none}}
@@ -66,16 +66,17 @@ header{position:absolute;z-index:5;left:0;right:0;top:0;display:flex;justify-con
 <div id="app">
 <header><div class="logo"><b><i></i><i></i><i></i></b>ИГРЫ</div><button id="ins" type="button">Как установить</button></header>
 <main id="deck">
-<a class="slide" data-i="0" href="https://felykxzy.github.io/slovopad.game/?from=hub" style="--bgc:#0b0a2c;--c:#5ef2ff" aria-label="СЛОВОПАД"><canvas></canvas>
+<section class="slide me" data-i="0" style="--bgc:#12102f;--c:#a77bff" aria-label="Обо мне"><canvas></canvas>
+<div class="info"><div class="kicker">разработчик</div><h2>Felykxzy</h2><p class="tag">Делаю небольшие игры и сайты, которые открываются за секунду на телефоне. Всё бесплатно и без регистрации.</p><button class="play go" id="goG" type="button"><i>▶</i>МОИ ИГРЫ</button><nav class="chips" aria-label="Соцсети"><a href="https://t.me/kilozexui">Telegram</a><a href="https://github.com/Felykxzy">GitHub</a></nav></div></section>
+<a class="slide" data-i="1" href="https://felykxzy.github.io/slovopad.game/?from=hub" style="--bgc:#0b0a2c;--c:#5ef2ff" aria-label="СЛОВОПАД"><canvas></canvas>
 <div class="info"><div class="kicker">печатай быстрее</div><h2>СЛОВОПАД</h2><p class="tag">Слова падают, ты печатаешь. Не дай им коснуться щита.</p><span class="play"><i>▶</i>ИГРАТЬ</span></div></a>
-<a class="slide" data-i="1" href="https://felykxzy.github.io/stopka/?from=hub" style="--bgc:#1c1a52;--c:#ffd166" aria-label="Стопка"><canvas></canvas>
+<a class="slide" data-i="2" href="https://felykxzy.github.io/stopka/?from=hub" style="--bgc:#1c1a52;--c:#ffd166" aria-label="Стопка"><canvas></canvas>
 <div class="info"><div class="kicker">один палец</div><h2>Стопка</h2><p class="tag">Строй башню из блоков. Чем выше, тем дальше в небо.</p><span class="play"><i>▶</i>ИГРАТЬ</span></div></a>
-<a class="slide" data-i="2" href="https://felykxzy.github.io/slovozmey/?from=hub" style="--bgc:#07261f;--c:#5ee68a" aria-label="Словозмей"><canvas></canvas>
+<a class="slide" data-i="3" href="https://felykxzy.github.io/slovozmey/?from=hub" style="--bgc:#07261f;--c:#5ee68a" aria-label="Словозмей"><canvas></canvas>
 <div class="info"><div class="kicker">слова из букв</div><h2>Словозмей</h2><p class="tag">Змейка ест буквы по порядку и собирает слова.</p><span class="play"><i>▶</i>ИГРАТЬ</span></div></a>
-<a class="slide" data-i="3" href="https://felykxzy.github.io/notely/?from=hub" style="--bgc:#1a0f35;--c:#ff4fd8" aria-label="Notely"><canvas></canvas>
+<a class="slide" data-i="4" href="https://felykxzy.github.io/notely/?from=hub" style="--bgc:#1a0f35;--c:#ff4fd8" aria-label="Notely"><canvas></canvas>
 <div class="info"><div class="kicker">бесплатная музыка</div><h2>Notely</h2><p class="tag">Слушай, что нравится: плейлисты, текст песен и живые фоны.</p><span class="play"><i>▶</i>СЛУШАТЬ</span></div></a>
-<section class="slide me" data-i="4" style="--bgc:#12102f;--c:#a77bff" aria-label="Обо мне"><canvas></canvas>
-<div class="info"><div class="kicker">разработчик</div><h2>Felykxzy</h2><p class="tag">Делаю небольшие игры и сайты, которые открываются за секунду на телефоне. Всё бесплатно и без регистрации.</p><nav class="chips" aria-label="Мои проекты"><a href="https://felykxzy.github.io/slovopad.game/?from=hub">СЛОВОПАД</a><a href="https://felykxzy.github.io/stopka/?from=hub">Стопка</a><a href="https://felykxzy.github.io/slovozmey/?from=hub">Словозмей</a><a href="https://felykxzy.github.io/notely/?from=hub">Notely</a><a href="https://github.com/Felykxzy">GitHub</a></nav></div></section>
+
 </main>
 <button class="arr" id="pv" type="button" aria-label="Назад">‹</button><button class="arr" id="nx" type="button" aria-label="Дальше">›</button>
 <nav id="dock" aria-label="Игры"></nav>
