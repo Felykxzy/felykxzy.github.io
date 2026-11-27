@@ -1,4 +1,4 @@
-/* Четыре живые сцены. Каждая рисуется по времени t (секунды) и не хранит состояния. */
+/* Пять живых сцен. Каждая рисуется по времени t (секунды) и не хранит состояния. */
 (function () {
   "use strict";
   var TAU = Math.PI * 2;
@@ -125,6 +125,22 @@
     for (i = 0; i < nb; i++) { var v = .2 + .8 * Math.abs(Math.sin(t * (1.8 + rnd(i) * 1.6) + i * .7)) * (.55 + .45 * Math.sin(i / nb * Math.PI)), bh = v * ah * .24; var bgr = g.createLinearGradient(0, by - bh, 0, by); bgr.addColorStop(0, "#ff4fd8"); bgr.addColorStop(1, "#7a52ff"); g.fillStyle = bgr; rr(g, bx + i * bw + bw * .15, by - bh, bw * .7, bh, bw * .35); g.fill(); }
     for (i = 0; i < 7; i++) { var ph = ((t * .13 + i / 7) % 1), nx = cx + (rnd(i + 20) - .5) * w * .8 + Math.sin(t + i) * 14 * u, ny = ah * .9 - ph * ah * .95; g.fillStyle = "rgba(255,255,255," + Math.sin(ph * Math.PI) * .7 + ")"; g.font = (20 + rnd(i) * 22) * u + "px " + FONT; g.textAlign = "center"; g.fillText(i % 2 ? "♪" : "♫", nx, ny); }
   }
-  window.SCENES = [s1, s2, s3, s4];
-  window.SCENE_THUMB_T = [3.2, 5.1, 6.4, 2.6];
+  /* 5. Обо мне: монограмма и четыре цвета игр на орбитах */
+  function s5(g, w, h, t) {
+    var G = geo(w, h), u = G.u, ah = G.ah;
+    var bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, "#1b1740"); bg.addColorStop(.6, "#0d0b2a"); bg.addColorStop(1, "#07061a"); g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    stars(g, w, ah, t, 46, 6, "200,210,255");
+    var cx = w / 2, cy = ah * .44, R = 86 * u, cols = ["94,242,255", "255,209,102", "94,230,138", "255,79,216"], i;
+    glow(g, cx, cy, R * 3, "167,123,255", .22);
+    for (i = 0; i < 4; i++) {
+      var rad = R * (1.35 + i * .34), a = t * (.55 - i * .09) + i * 1.7, x = cx + Math.cos(a) * rad, y = cy + Math.sin(a) * rad * .42;
+      g.strokeStyle = "rgba(" + cols[i] + ",.16)"; g.lineWidth = 1.5 * u; g.beginPath(); g.ellipse(cx, cy, rad, rad * .42, 0, 0, TAU); g.stroke();
+      glow(g, x, y, 26 * u, cols[i], .5); g.fillStyle = "rgb(" + cols[i] + ")"; g.beginPath(); g.arc(x, y, 8 * u, 0, TAU); g.fill();
+    }
+    var lg = g.createLinearGradient(cx - R, cy - R, cx + R, cy + R); lg.addColorStop(0, "#5ef2ff"); lg.addColorStop(.5, "#a77bff"); lg.addColorStop(1, "#ff4fd8");
+    g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.fillStyle = "#0c0a1f"; g.fill(); g.lineWidth = 5 * u; g.strokeStyle = lg; g.stroke();
+    g.fillStyle = lg; g.font = "800 " + R * 1.05 + "px " + FONT; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("F", cx, cy + R * .06);
+  }
+  window.SCENES = [s1, s2, s3, s4, s5];
+  window.SCENE_THUMB_T = [3.2, 5.1, 6.4, 2.6, 1.4];
 })();

@@ -38,7 +38,7 @@
   window.addEventListener("pointerup", end); window.addEventListener("pointercancel", end);
   deck.addEventListener("click", function (e) { if (moved) { e.preventDefault(); e.stopPropagation(); } }, true);
   deck.addEventListener("dragstart", function (e) { e.preventDefault(); });
-  slides.forEach(function (s) { if (!s.getAttribute("href")) s.addEventListener("click", function (e) { e.preventDefault(); }); });
+  slides.forEach(function (s) { if (!s.getAttribute("href")) s.addEventListener("click", function (e) { if (!e.target.closest("a")) e.preventDefault(); }); });
   document.getElementById("pv").onclick = function () { go(cur - 1); }; document.getElementById("nx").onclick = function () { go(cur + 1); };
   addEventListener("keydown", function (e) { if (e.key === "ArrowRight") go(cur + 1); else if (e.key === "ArrowLeft") go(cur - 1); });
   addEventListener("wheel", function (e) { if (Math.abs(e.deltaX) > 30 && !deck._w) { go(cur + (e.deltaX > 0 ? 1 : -1)); deck._w = 1; setTimeout(function () { deck._w = 0 }, 500); } }, { passive: true });

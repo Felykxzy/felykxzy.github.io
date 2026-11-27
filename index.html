@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Игры">
 <title>Игровой хаб</title>
-<meta name="description" content="Все игры в одном месте: СЛОВОПАД, Стопка, Словозмей, Notely. Бесплатно, без регистрации.">
+<meta name="description" content="Все игры в одном месте: СЛОВОПАД, Стопка, Словозмей, Notely и о разработчике. Бесплатно, без регистрации.">
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;800&family=Unbounded:wght@600;800&display=swap" rel="stylesheet">
@@ -54,6 +54,10 @@ header{position:absolute;z-index:5;left:0;right:0;top:0;display:flex;justify-con
 .info{left:0;right:auto;width:48%;top:50%;bottom:auto;transform:translateY(-54%);align-items:flex-start;text-align:left;padding:0 0 0 8vw}
 .tag{max-width:34ch}h2{font-size:clamp(48px,6.4vw,92px)}
 }
+.chips{margin-top:22px;display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:460px}
+.chips a{display:inline-flex;align-items:center;height:44px;padding:0 18px;border-radius:99px;font:800 15px var(--body);color:#fff;text-decoration:none;background:rgba(255,255,255,.13);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.chips a:last-child{background:var(--c);color:#07061a}
+@media (min-width:900px) and (min-aspect-ratio:12/10){.chips{justify-content:flex-start}}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media (prefers-reduced-motion:reduce){.play{animation:none}#deck{transition:none}}
 </style>
@@ -70,6 +74,8 @@ header{position:absolute;z-index:5;left:0;right:0;top:0;display:flex;justify-con
 <div class="info"><div class="kicker">слова из букв</div><h2>Словозмей</h2><p class="tag">Змейка ест буквы по порядку и собирает слова.</p><span class="play"><i>▶</i>ИГРАТЬ</span></div></a>
 <a class="slide" data-i="3" href="https://felykxzy.github.io/notely/?from=hub" style="--bgc:#1a0f35;--c:#ff4fd8" aria-label="Notely"><canvas></canvas>
 <div class="info"><div class="kicker">бесплатная музыка</div><h2>Notely</h2><p class="tag">Слушай, что нравится: плейлисты, текст песен и живые фоны.</p><span class="play"><i>▶</i>СЛУШАТЬ</span></div></a>
+<section class="slide me" data-i="4" style="--bgc:#12102f;--c:#a77bff" aria-label="Обо мне"><canvas></canvas>
+<div class="info"><div class="kicker">разработчик</div><h2>Felykxzy</h2><p class="tag">Делаю небольшие игры и сайты, которые открываются за секунду на телефоне. Всё бесплатно и без регистрации.</p><nav class="chips" aria-label="Мои проекты"><a href="https://felykxzy.github.io/slovopad.game/?from=hub">СЛОВОПАД</a><a href="https://felykxzy.github.io/stopka/?from=hub">Стопка</a><a href="https://felykxzy.github.io/slovozmey/?from=hub">Словозмей</a><a href="https://felykxzy.github.io/notely/?from=hub">Notely</a><a href="https://github.com/Felykxzy">GitHub</a></nav></div></section>
 </main>
 <button class="arr" id="pv" type="button" aria-label="Назад">‹</button><button class="arr" id="nx" type="button" aria-label="Дальше">›</button>
 <nav id="dock" aria-label="Игры"></nav>
