@@ -1,0 +1,42 @@
+name: iOS
+on:
+  workflow_dispatch:
+  push:
+    paths: ["ios-app/**", ".github/workflows/ios.yml"]
+permissions:
+  contents: write
+jobs:
+  ipa:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Установить XcodeGen
+        run: brew install xcodegen
+      - name: Собрать проект
+        working-directory: ios-app
+        run: |
+          export APP_BUILD=$(( $(date +%s) / 60 ))
+          xcodegen generate
+      - name: Собрать приложение без подписи
+        working-directory: ios-app
+        run: |
+          xcodebuild -project GameHub.xcodeproj -scheme GameHub -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
+      - name: Упаковать IPA
+        working-directory: ios-app
+        run: |
+          rm -rf Payload && mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/GameHub.app Payload/
+          zip -qry Igry.ipa Payload
+          ls -la *.ipa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Igry-ipa
+          path: ios-app/Igry.ipa
+      - name: Положить в релиз
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view ios-latest >/dev/null 2>&1 || gh release create ios-latest --title "Приложение для iPhone" --notes "Файл Igry.ipa для установки через Sideloadly"
+          gh release upload ios-latest ios-app/Igry.ipa --clobber
