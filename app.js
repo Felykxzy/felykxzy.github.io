@@ -1,5 +1,7 @@
 (function () {
   "use strict";
+  // страховка от смеси старых и новых файлов в кеше: один раз перезагружаем
+  if (!window.SCENES || window.SCENES.length !== document.getElementById("deck").children.length) { try { if (!sessionStorage.getItem("rl")) { sessionStorage.setItem("rl", "1"); location.reload(); } } catch (e) { } return; }
   var deck = document.getElementById("deck"), slides = [].slice.call(deck.children), dock = document.getElementById("dock"), N = slides.length;
   var wideMQ = matchMedia("(min-width:900px) and (min-aspect-ratio:12/10)"), CW = innerWidth, cur = 0, W = innerWidth, H = innerHeight, DPR = Math.min(2, window.devicePixelRatio || 1), drag = null, moved = false, lastT = performance.now(), recent = [];
   var cvs = slides.map(function (s) { return s.querySelector("canvas"); }), ctxs = cvs.map(function (c) { return c.getContext("2d"); });
