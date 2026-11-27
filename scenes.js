@@ -125,21 +125,46 @@
     for (i = 0; i < nb; i++) { var v = .2 + .8 * Math.abs(Math.sin(t * (1.8 + rnd(i) * 1.6) + i * .7)) * (.55 + .45 * Math.sin(i / nb * Math.PI)), bh = v * ah * .24; var bgr = g.createLinearGradient(0, by - bh, 0, by); bgr.addColorStop(0, "#ff4fd8"); bgr.addColorStop(1, "#7a52ff"); g.fillStyle = bgr; rr(g, bx + i * bw + bw * .15, by - bh, bw * .7, bh, bw * .35); g.fill(); }
     for (i = 0; i < 7; i++) { var ph = ((t * .13 + i / 7) % 1), nx = cx + (rnd(i + 20) - .5) * w * .8 + Math.sin(t + i) * 14 * u, ny = ah * .9 - ph * ah * .95; g.fillStyle = "rgba(255,255,255," + Math.sin(ph * Math.PI) * .7 + ")"; g.font = (20 + rnd(i) * 22) * u + "px " + FONT; g.textAlign = "center"; g.fillText(i % 2 ? "♪" : "♫", nx, ny); }
   }
-  /* 5. Обо мне: монограмма и четыре цвета игр на орбитах */
+  /* 5. Обо мне: северное сияние, лучи, фото и орбиты с цветами игр */
+  var AV = new Image(); AV.src = "avatar.jpg?v=8"; window.HUB_AV = AV;
   function s5(g, w, h, t) {
-    var G = geo(w, h), u = G.u, ah = G.ah;
-    var bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, "#1b1740"); bg.addColorStop(.6, "#0d0b2a"); bg.addColorStop(1, "#07061a"); g.fillStyle = bg; g.fillRect(0, 0, w, h);
-    stars(g, w, ah, t, 46, 6, "200,210,255");
-    var cx = w / 2, cy = ah * .44, R = 86 * u, cols = ["94,242,255", "255,209,102", "94,230,138", "255,79,216"], i;
-    glow(g, cx, cy, R * 3, "167,123,255", .22);
-    for (i = 0; i < 4; i++) {
-      var rad = R * (1.35 + i * .34), a = t * (.55 - i * .09) + i * 1.7, x = cx + Math.cos(a) * rad, y = cy + Math.sin(a) * rad * .42;
-      g.strokeStyle = "rgba(" + cols[i] + ",.16)"; g.lineWidth = 1.5 * u; g.beginPath(); g.ellipse(cx, cy, rad, rad * .42, 0, 0, TAU); g.stroke();
-      glow(g, x, y, 26 * u, cols[i], .5); g.fillStyle = "rgb(" + cols[i] + ")"; g.beginPath(); g.arc(x, y, 8 * u, 0, TAU); g.fill();
+    var G = geo(w, h), u = G.u, ah = G.ah, i, k;
+    var bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, "#0d0a33"); bg.addColorStop(.55, "#0a0824"); bg.addColorStop(1, "#06051a"); g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    var cx = w / 2, cy = ah * .43, R = 82 * u, cols = ["94,242,255", "255,209,102", "94,230,138", "255,79,216"];
+    // северное сияние: три лёгкие волны
+    g.save(); g.globalCompositeOperation = "lighter";
+    var au = ["94,242,255", "167,123,255", "255,79,216"];
+    for (k = 0; k < 3; k++) {
+      var base = ah * (.2 + k * .12), amp = 26 * u * (1 + k * .3);
+      var gr = g.createLinearGradient(0, base - amp * 2, 0, base + ah * .3); gr.addColorStop(0, "rgba(" + au[k] + ",0)"); gr.addColorStop(.35, "rgba(" + au[k] + ",.2)"); gr.addColorStop(1, "rgba(" + au[k] + ",0)");
+      g.fillStyle = gr; g.beginPath(); g.moveTo(0, h);
+      for (var x = 0; x <= w; x += 12) { var y = base + Math.sin(x / (110 * u) + t * (.5 + k * .2) + k * 2) * amp + Math.sin(x / (47 * u) - t * .8 + k) * amp * .35; g.lineTo(x, y); }
+      g.lineTo(w, h); g.closePath(); g.fill();
     }
+    g.restore();
+    glow(g, w * .2, ah * .15, h * .35, "167,123,255", .22); glow(g, w * .85, ah * .6, h * .3, "255,79,216", .16);
+    stars(g, w, ah * 1.05, t, 70, 5, "210,220,255");
+    // вращающиеся лучи за фото
+    g.save(); g.translate(cx, cy); g.rotate(t * .12);
+    for (i = 0; i < 14; i++) { g.rotate(TAU / 14); var rg = g.createLinearGradient(0, 0, R * 4.6, 0); rg.addColorStop(0, "rgba(167,123,255,.2)"); rg.addColorStop(1, "rgba(167,123,255,0)"); g.fillStyle = rg; g.beginPath(); g.moveTo(0, 0); g.lineTo(R * 4.6, -R * .2); g.lineTo(R * 4.6, R * .2); g.closePath(); g.fill(); }
+    g.restore();
+    glow(g, cx, cy, R * 2.8, "167,123,255", .3);
+    // орбиты и точки игр с хвостами
+    for (i = 0; i < 4; i++) {
+      var rad = R * (1.38 + i * .36), sp = (.55 - i * .08), a0 = t * sp + i * 1.7;
+      g.strokeStyle = "rgba(" + cols[i] + ",.2)"; g.lineWidth = 1.4 * u; g.beginPath(); g.ellipse(cx, cy, rad, rad * .4, 0, 0, TAU); g.stroke();
+      for (k = 14; k >= 0; k--) { var aa = a0 - k * .05, px = cx + Math.cos(aa) * rad, py = cy + Math.sin(aa) * rad * .4; g.fillStyle = "rgba(" + cols[i] + "," + (.5 * (1 - k / 15)) + ")"; g.beginPath(); g.arc(px, py, (8 - k * .4) * u, 0, TAU); g.fill(); }
+      var x2 = cx + Math.cos(a0) * rad, y2 = cy + Math.sin(a0) * rad * .4; glow(g, x2, y2, 30 * u, cols[i], .55); g.fillStyle = "#fff"; g.beginPath(); g.arc(x2, y2, 4 * u, 0, TAU); g.fill();
+    }
+    // падающие звёзды
+    for (i = 0; i < 3; i++) { var ph = ((t * .22 + i * .37) % 1); if (ph < .35) { var q = ph / .35, sx = w * (.15 + i * .35) + q * 160 * u, sy = ah * .05 + i * 30 * u + q * 110 * u; var tg = g.createLinearGradient(sx - 90 * u, sy - 40 * u, sx, sy); tg.addColorStop(0, "rgba(255,255,255,0)"); tg.addColorStop(1, "rgba(255,255,255," + (1 - q) + ")"); g.strokeStyle = tg; g.lineWidth = 2 * u; g.beginPath(); g.moveTo(sx - 90 * u, sy - 40 * u); g.lineTo(sx, sy); g.stroke(); } }
+    // фото в круге с градиентным кольцом
     var lg = g.createLinearGradient(cx - R, cy - R, cx + R, cy + R); lg.addColorStop(0, "#5ef2ff"); lg.addColorStop(.5, "#a77bff"); lg.addColorStop(1, "#ff4fd8");
-    g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.fillStyle = "#0c0a1f"; g.fill(); g.lineWidth = 5 * u; g.strokeStyle = lg; g.stroke();
-    g.fillStyle = lg; g.font = "800 " + R * 1.05 + "px " + FONT; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("F", cx, cy + R * .06);
+    g.save(); g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.clip();
+    if (AV.complete && AV.naturalWidth) g.drawImage(AV, cx - R, cy - R, R * 2, R * 2); else { g.fillStyle = "#12102f"; g.fillRect(cx - R, cy - R, R * 2, R * 2); }
+    g.restore();
+    g.lineWidth = 5 * u; g.strokeStyle = lg; g.beginPath(); g.arc(cx, cy, R + 2.5 * u, 0, TAU); g.stroke();
+    var pu = 1 + .03 * Math.sin(t * 2); g.strokeStyle = "rgba(167,123,255," + (.35 - .15 * Math.sin(t * 2)) + ")"; g.lineWidth = 2 * u; g.beginPath(); g.arc(cx, cy, (R + 14 * u) * pu, 0, TAU); g.stroke();
   }
   window.SCENES = [s5, s1, s2, s3, s4];
   window.SCENE_THUMB_T = [1.4, 3.2, 5.1, 6.4, 2.6];

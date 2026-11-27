@@ -57,7 +57,7 @@
     requestAnimationFrame(frame);
   }
   size(); go(0, true);
-  var rd = function () { thumbs(); }; if (document.fonts && document.fonts.ready) document.fonts.ready.then(rd);
+  var rd = function () { thumbs(); }; if (window.HUB_AV) window.HUB_AV.addEventListener("load", rd); if (document.fonts && document.fonts.ready) document.fonts.ready.then(rd);
   requestAnimationFrame(frame);
   window.__hub = { go: go, get cur() { return cur; } };
   if ("serviceWorker" in navigator && /^http/.test(location.protocol)) navigator.serviceWorker.register("sw.js").catch(function () { });
