@@ -32,6 +32,7 @@ h2{margin:0;font-family:var(--head);font-weight:800;font-size:clamp(36px,10.5vw,
 @keyframes pp{50%{box-shadow:0 0 0 10px transparent,0 12px 56px -4px var(--c)}}
 header{position:absolute;z-index:5;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:center;padding:max(16px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) 0 max(18px,env(safe-area-inset-left));pointer-events:none}
 .logo{display:flex;align-items:center;gap:10px;font:800 15px var(--head);letter-spacing:.04em}
+#ttl{transition:opacity .2s}#ttl.sw{opacity:0}
 .logo b{display:flex;flex-direction:column;gap:3px}.logo b i{display:block;height:5px;border-radius:3px}
 .logo b i:nth-child(1){width:22px;background:#ff4fd8}.logo b i:nth-child(2){width:17px;background:#5ef2ff}.logo b i:nth-child(3){width:12px;background:#ffd166}
 #ins{pointer-events:auto;border:0;border-radius:99px;padding:10px 16px;font:800 13px var(--body);color:#fff;background:rgba(255,255,255,.14);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer}
@@ -64,7 +65,7 @@ header{position:absolute;z-index:5;left:0;right:0;top:0;display:flex;justify-con
 </head>
 <body>
 <div id="app">
-<header><div class="logo"><b><i></i><i></i><i></i></b>ИГРЫ</div><button id="ins" type="button">Как установить</button></header>
+<header><div class="logo"><b><i></i><i></i><i></i></b><span id="ttl">ПОРТФОЛИО</span></div><button id="ins" type="button">Как установить</button></header>
 <main id="deck">
 <section class="slide me" data-i="0" style="--bgc:#12102f;--c:#a77bff" aria-label="Зекси"><canvas></canvas>
 <div class="info"><div class="kicker">разработчик</div><h2>Зекси</h2><p class="tag">Делаю небольшие игры и сайты, которые открываются за секунду на телефоне. Всё бесплатно и без регистрации.</p><button class="play go" id="goG" type="button"><i>▶</i>МОИ ИГРЫ</button><nav class="chips" aria-label="Соцсети"><a href="https://t.me/kilozexui">Telegram</a><a href="https://www.instagram.com/zehooww">Instagram</a><a href="https://www.tiktok.com/@zywhooq">TikTok</a><a href="https://github.com/Felykxzy">GitHub</a></nav></div></section>
@@ -82,6 +83,6 @@ header{position:absolute;z-index:5;left:0;right:0;top:0;display:flex;justify-con
 <nav id="dock" aria-label="Игры"></nav>
 <div id="how"><div><h3>Как установить</h3><p><b>iPhone:</b> открой в Safari, нажми «Поделиться» и выбери «На экран Домой».</p><p><b>Android:</b> в Chrome нажми меню ⋮ и выбери «Установить приложение».</p><p><b>Компьютер:</b> нажми значок установки справа в адресной строке.</p><button id="hx" type="button">Понятно</button></div></div>
 </div>
-<script src="scenes.js?v=9"></script>
-<script src="app.js?v=9"></script>
+<script src="scenes.js?v=10"></script>
+<script src="app.js?v=10"></script>
 </body></html>
