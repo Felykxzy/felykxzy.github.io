@@ -13,6 +13,8 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:500 15px/1.4 var(--body)}
 body{min-height:100vh;background:radial-gradient(800px 420px at 85% -10%,rgba(94,230,138,.16),transparent 60%),radial-gradient(700px 500px at -10% 25%,rgba(167,123,255,.16),transparent 60%),var(--bg);padding:max(14px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(28px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+html{overflow-x:hidden;overscroll-behavior-x:none;-webkit-text-size-adjust:100%}body{overflow-x:hidden;max-width:100%;overscroll-behavior-x:none;touch-action:pan-y}
+.wrap{min-width:0}.wrap *{min-width:0;overflow-wrap:anywhere}.wrap select,.wrap input,.wrap button,.wrap a{overflow-wrap:normal}
 .wrap{max-width:760px;margin:0 auto}
 header{display:flex;align-items:center;gap:12px;margin-bottom:6px}
 .back{display:inline-flex;align-items:center;height:40px;padding:0 16px;border-radius:99px;background:var(--card);color:var(--ink);text-decoration:none;font-weight:800;border:1px solid var(--line)}
@@ -26,9 +28,9 @@ h2{margin:0 0 4px;font:700 15px var(--head)}
 .chip[aria-pressed=true]{background:var(--vi);color:#10061f;border-color:var(--vi)}
 input[type=text],input[type=search],select{height:44px;border-radius:12px;border:1px solid var(--line);background:var(--fld);color:var(--ink);font:600 15px var(--body);padding:0 12px;min-width:0;width:100%}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.row>*{flex:1 1 140px}
+.row>*{flex:1 1 120px;min-width:0}
 label.l{display:block;color:var(--mut);font-size:12px;margin:0 0 4px;font-weight:700}
-.btn{white-space:nowrap;height:48px;padding:0 20px;border-radius:14px;border:0;background:var(--fld);color:var(--ink);font:800 15px var(--body);cursor:pointer}
+.btn{white-space:nowrap;max-width:100%;height:48px;padding:0 20px;border-radius:14px;border:0;background:var(--fld);color:var(--ink);font:800 15px var(--body);cursor:pointer}
 .btn.go{background:var(--gr);color:#07210f}
 .btn:disabled{opacity:.5;cursor:default}
 .chk{display:flex;gap:10px;align-items:center;margin-top:12px;color:var(--ink);font-size:14px}
