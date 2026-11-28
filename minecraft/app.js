@@ -245,9 +245,25 @@
       return { mods: mods, genres: genres, note: String(o.note || "") };
     });
   }
+  function cleanKey(v) { return String(v || "").replace(/["'«»“”‘’`]/g, "").replace(/^\s*bearer\s+/i, "").replace(/\s/g, ""); }
+  function keyStatus() {
+    var k = cleanKey($("aiKey").value), el = $("aiKeyInfo");
+    el.className = "note";
+    el.textContent = !k ? "Ключ не вставлен." : (k.indexOf("sk-or-") !== 0 ? "Ключ вставлен (…" + k.slice(-4) + "), но обычно он начинается с sk-or-. Проверь, что скопировал весь." : "Ключ вставлен (…" + k.slice(-4) + "). Нажми «Проверить ключ».");
+  }
+  function checkKey() {
+    var k = cleanKey($("aiKey").value), el = $("aiKeyInfo");
+    if (!k) { el.textContent = "Сначала вставь ключ."; return; }
+    el.className = "note"; el.textContent = "Проверяю…";
+    fetch("https://openrouter.ai/api/v1/auth/key", { headers: { "Authorization": "Bearer " + k } }).then(function (r) {
+      if (r.status === 401 || r.status === 403) { el.textContent = "✗ OpenRouter не принял этот ключ. Создай новый на openrouter.ai/keys и вставь целиком."; return; }
+      if (!r.ok) { el.textContent = "OpenRouter ответил кодом " + r.status + ". Попробуй позже."; return; }
+      return r.json().then(function (d) { var x = d && d.data || {}; el.textContent = "✓ Ключ работает" + (x.label ? " («" + x.label + "»)" : "") + (x.limit_remaining != null ? ". Осталось: $" + Number(x.limit_remaining).toFixed(2) : "") + "."; });
+    }).catch(function () { el.textContent = "Не удалось связаться с openrouter.ai. Проверь интернет или отключи блокировщик рекламы и VPN."; });
+  }
   function aiGo() {
     if (st.running) return;
-    var text = $("aiText").value.trim(), key = $("aiKey").value.trim(), model = $("aiModel").value.trim() || "openai/gpt-4o-mini";
+    var text = $("aiText").value.trim(), key = cleanKey($("aiKey").value), model = $("aiModel").value.trim() || "openai/gpt-4o-mini";
     if (!text) { $("res").innerHTML = '<div class="err">Напиши, какую сборку хочешь.</div>'; return; }
     if (!key) { $("aiSet").open = true; $("res").innerHTML = '<div class="err">Вставь ключ OpenRouter в поле «Ключ и модель».</div>'; $("aiKey").focus(); return; }
     try { localStorage.setItem("mcbai", JSON.stringify($("aiSave").checked ? { key: key, model: model, save: true, text: text } : { model: model, text: text })); } catch (e) { }
@@ -262,7 +278,7 @@
       logLine("ИИ подобрал: " + all.join(", "), "h"); if (a.note) logLine(a.note, "ok");
     }).catch(function (e) {
       $("aiGo").disabled = false; $("aiGo").textContent = "Подобрать с ИИ и собрать";
-      $("res").innerHTML = '<div class="err">' + esc(e && e.message || "Не получилось. Проверь интернет.") + "</div>";
+      $("res").innerHTML = '<div class="err">' + esc(e && e.message || "Не получилось связаться с OpenRouter. Нажми «Проверить ключ», выключи блокировщик рекламы или VPN и попробуй снова.") + "</div>";
     });
   }
   function go() {
@@ -317,8 +333,8 @@
     fill(["1.21.1", "1.20.4", "1.20.1", "1.19.2"]);
     api(MR + "/tag/game_version").then(function (vs) { var rel = vs.filter(function (v) { return v.version_type === "release"; }).map(function (v) { return v.version; }).slice(0, 80); if (rel.length) fill(rel); }).catch(function () { });
     $("dg").innerHTML = GENRE_LABELS.map(function (g) { return '<option value="' + g[1] + '">' + esc(g[0]) + "</option>"; }).join("");
-    $("go").onclick = go; $("aiGo").onclick = aiGo;
-    var ac = aiCfg(); $("aiKey").value = ac.key || ""; $("aiModel").value = ac.model || "openai/gpt-4o-mini"; $("aiSave").checked = !!ac.save; if (ac.text) $("aiText").value = ac.text;
+    $("go").onclick = function () { if ($("aiText").value.trim() && cleanKey($("aiKey").value)) aiGo(); else go(); }; $("aiGo").onclick = aiGo; $("aiChk").onclick = checkKey; $("aiKey").oninput = keyStatus; $("aiKey").onchange = keyStatus;
+    var ac = aiCfg(); $("aiKey").value = ac.key || ""; $("aiModel").value = ac.model || "openai/gpt-4o-mini"; $("aiSave").checked = !!ac.save; if (ac.text) $("aiText").value = ac.text; keyStatus();
     ["mc", "ld", "per", "base", "size"].forEach(function (id) { $(id).onchange = save; });
     $("extra").oninput = save;
     $("catBtn").onclick = function () { $("dhint").textContent = "Моды для Minecraft " + $("mc").value + " и " + $("ld").value + ". Нажимай на карточки, чтобы выбрать, потом «Добавить выбранные»."; $("dlg").showModal(); searchCat(); };

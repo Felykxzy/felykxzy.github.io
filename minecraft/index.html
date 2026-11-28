@@ -70,9 +70,10 @@ details{margin-top:10px}summary{cursor:pointer;color:var(--mut);font-weight:700;
 <div class="card"><h2>Мод Cube Form</h2><p class="hint">Сам превращает тебя: в воде в лодку, на ходу остаёшься игроком, стоишь на месте и становишься блоком. Нужны Minecraft 1.21.1, Fabric и Fabric API. На телефоне работает в Java-версии (Pojav, Zalith). Команда /cube включает и выключает.</p><a class="btn go dl" href="https://github.com/Felykxzy/felykxzy.github.io/releases/download/latest/cube-form-1.0.0.jar">Скачать мод (.jar)</a></div>
 <div class="card" id="aiCard"><h2>Опиши сборку словами (ИИ)</h2><p class="hint">Напиши своими словами, что хочешь. ИИ подберёт моды, и сборка сразу соберётся. Нужен твой ключ OpenRouter: он хранится только у тебя и отправляется только на openrouter.ai.</p>
 <textarea id="aiText" rows="3" placeholder="Например: хочу выживание с магией и красивыми шейдерами, чтобы не лагало на слабом телефоне"></textarea>
-<details id="aiSet"><summary>Ключ и модель</summary>
+<details id="aiSet" open><summary>Ключ и модель</summary>
 <label class="l" for="aiKey" style="margin-top:10px">Ключ OpenRouter</label><input type="password" id="aiKey" placeholder="sk-or-..." autocomplete="off" autocapitalize="off" spellcheck="false">
 <label class="l" for="aiModel" style="margin-top:10px">Модель</label><input type="text" id="aiModel" list="aiModels" autocomplete="off" autocapitalize="off" spellcheck="false"><datalist id="aiModels"><option value="openai/gpt-4o-mini"><option value="anthropic/claude-3.5-haiku"><option value="google/gemini-2.0-flash-001"><option value="meta-llama/llama-3.3-70b-instruct:free"></datalist>
+<p class="note" id="aiKeyInfo">Ключ не вставлен.</p><button class="btn" id="aiChk" type="button" style="width:100%;margin-top:8px">Проверить ключ</button>
 <label class="chk"><input type="checkbox" id="aiSave"> Запомнить ключ на этом устройстве</label>
 <p class="note">Ключ бесплатно создаётся на <a href="https://openrouter.ai/keys" target="_blank" rel="noopener" style="color:var(--gr)">openrouter.ai/keys</a>. Бесплатные модели с :free тоже есть, но они бывают занятыми.</p></details>
 <button class="btn go" id="aiGo" type="button" style="width:100%;margin-top:10px">Подобрать с ИИ и собрать</button></div>
@@ -102,6 +103,6 @@ details{margin-top:10px}summary{cursor:pointer;color:var(--mut);font-weight:700;
 <div class="list"><div class="mods" id="dlist"></div></div>
 <div class="dfoot"><button class="btn go" id="dadd" type="button">Добавить выбранные</button></div>
 </div></dialog>
-<script src="app.js?v=4"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>
