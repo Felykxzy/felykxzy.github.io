@@ -189,6 +189,52 @@
   function logLine(t, cls) { var l = $("log"); l.hidden = false; var s = document.createElement("div"); if (cls) s.className = cls; s.textContent = t; l.appendChild(s); l.scrollTop = l.scrollHeight; }
   function tile(m) { return m.icon ? '<img class="ic" loading="lazy" alt="" src="' + esc(m.icon) + '" onerror="this.outerHTML=\'<div class=ic>' + esc((m.title || "?").charAt(0).toUpperCase()) + '</div>\'">' : '<div class="ic">' + esc((m.title || "?").charAt(0).toUpperCase()) + "</div>"; }
 
+
+  // ---- ИИ через OpenRouter (у каждого свой ключ) ----
+  var AI_KEYS = ["optimization", "magic", "technology", "adventure", "worldgen", "mobs", "decoration", "equipment", "food", "storage", "transportation", "utility", "game-mechanics"];
+  function aiCfg() { try { return JSON.parse(localStorage.getItem("mcbai")) || {}; } catch (e) { return {}; } }
+  function aiAsk(key, model, text, mc, loader) {
+    var sys = "Ты помощник по сборкам модов Minecraft. Игрок описывает, какую сборку хочет. Подбери до 12 реально существующих модов для Minecraft " + mc + " и загрузчика " + loader + ". Называй моды точно так, как они называются на Modrinth (например: Sodium, Create, Xaero's Minimap). Не придумывай несуществующих. Ответь ТОЛЬКО JSON без пояснений и без markdown: {\"mods\":[\"название\"],\"genres\":[ключи из списка: " + AI_KEYS.join(", ") + "],\"note\":\"одно короткое предложение по-русски, что получилось\"}.";
+    return fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + key, "Content-Type": "application/json", "HTTP-Referer": location.origin, "X-Title": "Zeksi modpack builder" },
+      body: JSON.stringify({ model: model, temperature: 0.3, max_tokens: 700, messages: [{ role: "system", content: sys }, { role: "user", content: text }] })
+    }).then(function (r) {
+      if (r.status === 401) throw new Error("Ключ не подошёл. Проверь, что скопировал его целиком.");
+      if (r.status === 402) throw new Error("На ключе нет денег. Пополни баланс на openrouter.ai или выбери модель с :free.");
+      if (r.status === 429) throw new Error("Слишком много запросов. Подожди минуту и попробуй ещё раз.");
+      if (!r.ok) throw new Error("ИИ не ответил (код " + r.status + "). Попробуй другую модель.");
+      return r.json();
+    }).then(function (d) {
+      var t = d && d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content || "";
+      var m = String(t).match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("ИИ ответил не так, как нужно. Попробуй ещё раз или другую модель.");
+      var o; try { o = JSON.parse(m[0]); } catch (e) { throw new Error("ИИ ответил не так, как нужно. Попробуй ещё раз или другую модель."); }
+      var mods = (Array.isArray(o.mods) ? o.mods : []).map(function (x) { return String(x).trim(); }).filter(function (x) { return x && x.length < 60 && x.indexOf(",") < 0; }).slice(0, 15);
+      var genres = (Array.isArray(o.genres) ? o.genres : []).filter(function (g) { return AI_KEYS.indexOf(g) >= 0; });
+      return { mods: mods, genres: genres, note: String(o.note || "") };
+    });
+  }
+  function aiGo() {
+    if (st.running) return;
+    var text = $("aiText").value.trim(), key = $("aiKey").value.trim(), model = $("aiModel").value.trim() || "openai/gpt-4o-mini";
+    if (!text) { $("res").innerHTML = '<div class="err">Напиши, какую сборку хочешь.</div>'; return; }
+    if (!key) { $("aiSet").open = true; $("res").innerHTML = '<div class="err">Вставь ключ OpenRouter в поле «Ключ и модель».</div>'; $("aiKey").focus(); return; }
+    try { localStorage.setItem("mcbai", JSON.stringify($("aiSave").checked ? { key: key, model: model, save: true, text: text } : { model: model, text: text })); } catch (e) { }
+    $("aiGo").disabled = true; $("aiGo").textContent = "ИИ думает…"; $("res").innerHTML = ""; $("log").innerHTML = "";
+    aiAsk(key, model, text, $("mc").value, $("ld").value).then(function (a) {
+      var kw = a.genres.map(function (g) { return GENRES.filter(function (x) { return x[0] === g; })[0][1][0]; });
+      var all = a.mods.concat(kw);
+      if (!all.length) throw new Error("ИИ ничего не подобрал. Опиши подробнее.");
+      $("extra").value = all.join(", "); st.chips = {}; buildChips(); save();
+      $("aiGo").disabled = false; $("aiGo").textContent = "Подобрать с ИИ и собрать";
+      go();
+      logLine("ИИ подобрал: " + all.join(", "), "h"); if (a.note) logLine(a.note, "ok");
+    }).catch(function (e) {
+      $("aiGo").disabled = false; $("aiGo").textContent = "Подобрать с ИИ и собрать";
+      $("res").innerHTML = '<div class="err">' + esc(e && e.message || "Не получилось. Проверь интернет.") + "</div>";
+    });
+  }
   function go() {
     if (st.running) return;
     var wish = Object.keys(st.chips).concat($("extra").value.split(",").map(function (x) { return x.trim(); }).filter(Boolean)).join(", ");
@@ -241,7 +287,8 @@
     fill(["1.21.1", "1.20.4", "1.20.1", "1.19.2"]);
     api(MR + "/tag/game_version").then(function (vs) { var rel = vs.filter(function (v) { return v.version_type === "release"; }).map(function (v) { return v.version; }).slice(0, 30); if (rel.length) fill(rel); }).catch(function () { });
     $("dg").innerHTML = GENRE_LABELS.map(function (g) { return '<option value="' + g[1] + '">' + esc(g[0]) + "</option>"; }).join("");
-    $("go").onclick = go;
+    $("go").onclick = go; $("aiGo").onclick = aiGo;
+    var ac = aiCfg(); $("aiKey").value = ac.key || ""; $("aiModel").value = ac.model || "openai/gpt-4o-mini"; $("aiSave").checked = !!ac.save; if (ac.text) $("aiText").value = ac.text;
     ["mc", "ld", "per", "base"].forEach(function (id) { $(id).onchange = save; });
     $("extra").oninput = save;
     $("catBtn").onclick = function () { $("dhint").textContent = "Моды для Minecraft " + $("mc").value + " и " + $("ld").value + ". Нажимай на карточки, чтобы выбрать, потом «Добавить выбранные»."; $("dlg").showModal(); searchCat(); };
