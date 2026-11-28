@@ -261,24 +261,26 @@
       return r.json().then(function (d) { var x = d && d.data || {}; el.textContent = "✓ Ключ работает" + (x.label ? " («" + x.label + "»)" : "") + (x.limit_remaining != null ? ". Осталось: $" + Number(x.limit_remaining).toFixed(2) : "") + "."; });
     }).catch(function () { el.textContent = "Не удалось связаться с openrouter.ai. Проверь интернет или отключи блокировщик рекламы и VPN."; });
   }
+  function aiMsg(t, bad) { var m = $("aiMsg"); m.textContent = t || ""; m.style.color = bad ? "#ffb4bd" : ""; m.style.fontWeight = bad ? "800" : ""; if (t) { try { m.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) { } } }
   function aiGo() {
     if (st.running) return;
     var text = $("aiText").value.trim(), key = cleanKey($("aiKey").value), model = $("aiModel").value.trim() || "openai/gpt-4o-mini";
-    if (!text) { $("res").innerHTML = '<div class="err">Напиши, какую сборку хочешь.</div>'; return; }
-    if (!key) { $("aiSet").open = true; $("res").innerHTML = '<div class="err">Вставь ключ OpenRouter в поле «Ключ и модель».</div>'; $("aiKey").focus(); return; }
+    if (!text) { aiMsg("Сначала напиши, какую сборку хочешь, в поле выше.", true); $("aiText").focus(); return; }
+    if (!key) { $("aiSet").open = true; aiMsg("Вставь ключ OpenRouter в поле «Ключ OpenRouter» выше.", true); $("aiKey").focus(); return; }
     try { localStorage.setItem("mcbai", JSON.stringify($("aiSave").checked ? { key: key, model: model, save: true, text: text } : { model: model, text: text })); } catch (e) { }
-    $("aiGo").disabled = true; $("aiGo").textContent = "ИИ думает…"; $("res").innerHTML = ""; $("log").innerHTML = "";
+    $("aiGo").disabled = true; $("aiGo").textContent = "ИИ думает…"; $("res").innerHTML = ""; $("log").innerHTML = ""; aiMsg("Отправляю запрос в OpenRouter (модель " + model + ")…");
     aiAsk(key, model, text, $("mc").value, $("ld").value, Math.min(60, Math.max(12, +$("size").value || 12))).then(function (a) {
       var kw = a.genres.map(function (g) { return GENRES.filter(function (x) { return x[0] === g; })[0][1][0]; });
       var all = a.mods.concat(kw);
       if (!all.length) throw new Error("ИИ ничего не подобрал. Опиши подробнее.");
       $("extra").value = all.join(", "); st.chips = {}; buildChips(); save();
       $("aiGo").disabled = false; $("aiGo").textContent = "Подобрать с ИИ и собрать";
+      aiMsg("ИИ подобрал " + all.length + " вариантов. Собираю сборку, это займёт немного времени…");
       go();
       logLine("ИИ подобрал: " + all.join(", "), "h"); if (a.note) logLine(a.note, "ok");
     }).catch(function (e) {
       $("aiGo").disabled = false; $("aiGo").textContent = "Подобрать с ИИ и собрать";
-      $("res").innerHTML = '<div class="err">' + esc(e && e.message || "Не получилось связаться с OpenRouter. Нажми «Проверить ключ», выключи блокировщик рекламы или VPN и попробуй снова.") + "</div>";
+      aiMsg((e && e.message) || "Не получилось связаться с OpenRouter. Нажми «Проверить ключ», выключи блокировщик рекламы или VPN и попробуй снова.", true);
     });
   }
   function go() {
@@ -286,7 +288,7 @@
     var wish = Object.keys(st.chips).concat($("extra").value.split(",").map(function (x) { return x.trim(); }).filter(Boolean)).join(", ");
     var manual = Object.keys(st.manual).map(function (id) { return { id: id, title: st.manual[id].title, icon: st.manual[id].icon }; });
     if (!wish && !manual.length) { $("res").innerHTML = '<div class="err">Выбери жанры, впиши названия или добавь моды вручную.</div>'; return; }
-    save(); st.running = true; $("go").disabled = true; $("bar").hidden = false; $("log").innerHTML = ""; $("res").innerHTML = "";
+    save(); st.running = true; $("go").disabled = true; $("bar").hidden = false; try { $("bar").scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) { } $("log").innerHTML = ""; $("res").innerHTML = "";
     var ctx = new Ctx($("mc").value, $("ld").value, logLine, +$("per").value, $("base").checked, +$("size").value);
     ctx.run(wish, manual).then(function () {
       if (!ctx.mods.length) { $("res").innerHTML = '<div class="err">Ничего не нашлось. Попробуй другую версию Minecraft, другой загрузчик или другие слова.</div>'; return; }
