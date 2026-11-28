@@ -427,6 +427,13 @@ def save_cfg(d):
 
 
 # ---------- окно ----------
+BG, CARD, FIELD, LINE = "#120f1f", "#1c1830", "#27223f", "#3b3562"
+INK, MUT, GREEN, GREEN_H, VIOLET = "#f1f0ff", "#a7a3d0", "#5ee68a", "#7bf0a2", "#a77bff"
+CHIPS = [("Оптимизация", "оптимизация"), ("Шейдеры", "шейдеры"), ("Магия", "магия"), ("Техно", "техно"), ("Приключения", "приключения"),
+         ("Мобы", "мобы"), ("Декор", "декор"), ("Еда", "еда"), ("Оружие и броня", "оружие"), ("Хранилища", "хранилища"),
+         ("Миникарта", "миникарта"), ("Транспорт", "транспорт"), ("Выживание", "выживание"), ("Удобства", "утилиты")]
+
+
 def gui():
     import threading
     import queue
@@ -434,46 +441,112 @@ def gui():
     from tkinter import ttk, filedialog, messagebox
     cfg = load_cfg()
     root = tk.Tk()
-    root.title("Сборщик модов для Prism Launcher")
-    root.geometry("720x680")
-    pad = {"padx": 12, "pady": 4}
+    root.title("Сборщик модов")
+    root.configure(bg=BG)
+    root.geometry("780x860")
+    root.minsize(720, 760)
+    F = "Segoe UI"
     q = queue.Queue()
-    ttk.Label(root, text="Какую сборку хочешь? Через запятую: жанры или названия модов", font=("Segoe UI", 11, "bold")).pack(anchor="w", **pad)
-    ttk.Label(root, text="Например: магия, оптимизация, шейдеры, create, миникарта").pack(anchor="w", padx=12)
-    wish = tk.Text(root, height=4, wrap="word")
-    wish.pack(fill="x", **pad)
-    wish.insert("1.0", cfg.get("wish", "оптимизация, шейдеры, миникарта"))
-    row = ttk.Frame(root)
-    row.pack(fill="x", **pad)
-    ttk.Label(row, text="Версия Minecraft:").pack(side="left")
-    mc = ttk.Combobox(row, width=10, values=["1.21.1", "1.20.4", "1.20.1", "1.19.2"])
+
+    st = ttk.Style()
+    try:
+        st.theme_use("clam")
+    except Exception:
+        pass
+    st.configure("TCombobox", fieldbackground=FIELD, background=FIELD, foreground=INK, arrowcolor=GREEN, bordercolor=LINE, lightcolor=FIELD, darkcolor=FIELD, padding=6)
+    st.map("TCombobox", fieldbackground=[("readonly", FIELD)], foreground=[("readonly", INK)])
+    st.configure("TSpinbox", fieldbackground=FIELD, background=FIELD, foreground=INK, arrowcolor=GREEN, bordercolor=LINE, padding=6)
+    st.configure("Green.Horizontal.TProgressbar", troughcolor=FIELD, background=GREEN, bordercolor=FIELD, lightcolor=GREEN, darkcolor=GREEN)
+    root.option_add("*TCombobox*Listbox.background", FIELD)
+    root.option_add("*TCombobox*Listbox.foreground", INK)
+    root.option_add("*TCombobox*Listbox.selectBackground", VIOLET)
+
+    def card(parent, title, hint=""):
+        outer = tk.Frame(parent, bg=CARD, highlightthickness=1, highlightbackground=LINE)
+        outer.pack(fill="x", padx=18, pady=7)
+        tk.Label(outer, text=title, bg=CARD, fg=INK, font=(F, 12, "bold")).pack(anchor="w", padx=14, pady=(10, 0))
+        if hint:
+            tk.Label(outer, text=hint, bg=CARD, fg=MUT, font=(F, 9), justify="left", wraplength=700).pack(anchor="w", padx=14)
+        inner = tk.Frame(outer, bg=CARD)
+        inner.pack(fill="x", padx=14, pady=(6, 12))
+        return inner
+
+    def entry(parent, var=None, width=30, show=None):
+        return tk.Entry(parent, textvariable=var, width=width, show=show, bg=FIELD, fg=INK, insertbackground=GREEN, relief="flat",
+                        font=(F, 11), highlightthickness=1, highlightbackground=LINE, highlightcolor=GREEN)
+
+    class Btn(tk.Label):
+        def __init__(self, parent, text, cmd, primary=False):
+            self.bg = GREEN if primary else FIELD
+            self.hv = GREEN_H if primary else LINE
+            self.fg = "#07210f" if primary else INK
+            tk.Label.__init__(self, parent, text=text, bg=self.bg, fg=self.fg, font=(F, 11, "bold"), padx=16, pady=10, cursor="hand2")
+            self.cmd, self.on = cmd, True
+            self.bind("<Enter>", lambda e: self.on and self.config(bg=self.hv))
+            self.bind("<Leave>", lambda e: self.config(bg=self.bg if self.on else LINE))
+            self.bind("<Button-1>", lambda e: self.on and self.cmd())
+
+        def enable(self, v):
+            self.on = v
+            self.config(bg=self.bg if v else LINE, fg=self.fg if v else MUT, cursor="hand2" if v else "arrow")
+
+    # заголовок
+    head = tk.Frame(root, bg=BG)
+    head.pack(fill="x", padx=18, pady=(16, 4))
+    tk.Label(head, text="Сборщик модов", bg=BG, fg=GREEN, font=(F, 22, "bold")).pack(anchor="w")
+    tk.Label(head, text="Выбери, что хочешь в сборке. Программа найдёт моды, скачает их и положит в нужное место.", bg=BG, fg=MUT, font=(F, 10)).pack(anchor="w")
+
+    # 1. что хочешь
+    c1 = card(root, "1. Что должно быть в сборке", "Нажми на нужные жанры. Если нужен конкретный мод, впиши его название через запятую.")
+    picked = set(cfg.get("chips", []))
+    chip_w = {}
+    grid = tk.Frame(c1, bg=CARD)
+    grid.pack(fill="x")
+
+    def paint(key):
+        w = chip_w[key]
+        on = key in picked
+        w.config(bg=VIOLET if on else FIELD, fg="#10061f" if on else INK)
+
+    def toggle(key):
+        picked.symmetric_difference_update({key})
+        paint(key)
+    for i, (label, key) in enumerate(CHIPS):
+        w = tk.Label(grid, text=label, font=(F, 10, "bold"), padx=12, pady=6, cursor="hand2", bg=FIELD, fg=INK)
+        w.grid(row=i // 5, column=i % 5, padx=3, pady=3, sticky="w")
+        w.bind("<Button-1>", lambda e, k=key: toggle(k))
+        chip_w[key] = w
+        paint(key)
+    extra = entry(c1, width=60)
+    extra.insert(0, cfg.get("extra", "create"))
+    extra.pack(fill="x", pady=(8, 0), ipady=5)
+
+    # 2. игра
+    c2 = card(root, "2. Какая игра", "Версия и загрузчик должны совпадать со сборкой в лаунчере. Для Prism они подставятся сами.")
+    r2 = tk.Frame(c2, bg=CARD)
+    r2.pack(fill="x")
+    tk.Label(r2, text="Minecraft", bg=CARD, fg=MUT, font=(F, 10)).pack(side="left")
+    mc = ttk.Combobox(r2, width=8, values=["1.21.1", "1.20.4", "1.20.1", "1.19.2"])
     mc.set(cfg.get("mc", "1.20.1"))
-    mc.pack(side="left", padx=6)
-    ttk.Label(row, text="Загрузчик:").pack(side="left", padx=(12, 0))
-    ld = ttk.Combobox(row, width=9, values=["fabric", "forge", "neoforge"], state="readonly")
+    mc.pack(side="left", padx=(6, 16))
+    tk.Label(r2, text="Загрузчик", bg=CARD, fg=MUT, font=(F, 10)).pack(side="left")
+    ld = ttk.Combobox(r2, width=9, values=["fabric", "forge", "neoforge"], state="readonly")
     ld.set(cfg.get("loader", "fabric"))
-    ld.pack(side="left", padx=6)
-    ttk.Label(row, text="Модов на жанр:").pack(side="left", padx=(12, 0))
-    pg = ttk.Spinbox(row, from_=1, to=10, width=4)
+    ld.pack(side="left", padx=(6, 16))
+    tk.Label(r2, text="Модов на жанр", bg=CARD, fg=MUT, font=(F, 10)).pack(side="left")
+    pg = ttk.Spinbox(r2, from_=1, to=10, width=4)
     pg.set(cfg.get("per_genre", 3))
     pg.pack(side="left", padx=6)
-    row2 = ttk.Frame(root)
-    row2.pack(fill="x", **pad)
-    ttk.Label(row2, text="Название сборки:").pack(side="left")
-    nm = ttk.Entry(row2, width=26)
-    nm.insert(0, cfg.get("name", "Моя сборка"))
-    nm.pack(side="left", padx=6)
     base = tk.BooleanVar(value=cfg.get("base", True))
-    ttk.Checkbutton(row2, text="Добавить базовую оптимизацию", variable=base).pack(side="left", padx=12)
-    ttk.Label(root, text="Ключ CurseForge (нужен, только если мода нет на Modrinth; можно оставить пустым):").pack(anchor="w", **pad)
-    key = ttk.Entry(root, show="•")
-    key.insert(0, cfg.get("cf_key", ""))
-    key.pack(fill="x", **pad)
-    ttk.Label(root, text="Папка экземпляра в лаунчере (Prism: правый клик на сборке → «Папка»; можно и просто папка mods):").pack(anchor="w", **pad)
-    row4 = ttk.Frame(root)
-    row4.pack(fill="x", **pad)
+    tk.Checkbutton(c2, text="Добавить базовую оптимизацию (Sodium, Lithium и похожие)", variable=base, bg=CARD, fg=INK, selectcolor=FIELD,
+                   activebackground=CARD, activeforeground=INK, font=(F, 10)).pack(anchor="w", pady=(8, 0))
+
+    # 3. куда
+    c3 = card(root, "3. Куда положить", "Prism: правый клик на сборке → «Папка» → скопируй путь. Подойдёт и просто папка mods.")
+    r3 = tk.Frame(c3, bg=CARD)
+    r3.pack(fill="x")
     inst = tk.StringVar(value=cfg.get("inst", ""))
-    ttk.Entry(row4, textvariable=inst, width=56).pack(side="left")
+    entry(r3, inst, 50).pack(side="left", fill="x", expand=True, ipady=5)
 
     def pick_inst():
         d = filedialog.askdirectory()
@@ -485,21 +558,31 @@ def gui():
             mc.set(m_)
         if l_:
             ld.set(l_)
-    ttk.Button(row4, text="Выбрать", command=pick_inst).pack(side="left", padx=6)
-    row3 = ttk.Frame(root)
-    row3.pack(fill="x", **pad)
-    out = tk.StringVar(value=cfg.get("out", os.path.join(os.path.expanduser("~"), "Desktop") if os.path.isdir(os.path.join(os.path.expanduser("~"), "Desktop")) else os.getcwd()))
-    ttk.Label(row3, text="Куда сохранить:").pack(side="left")
-    ttk.Entry(row3, textvariable=out, width=48).pack(side="left", padx=6)
-    ttk.Button(row3, text="Выбрать", command=lambda: out.set(filedialog.askdirectory() or out.get())).pack(side="left")
-    brow = ttk.Frame(root)
-    brow.pack(**pad)
-    btn = ttk.Button(brow, text="Положить моды в папку экземпляра")
-    btn.pack(side="left", padx=6)
-    btn2 = ttk.Button(brow, text="Собрать файл для импорта в Prism")
-    btn2.pack(side="left", padx=6)
-    log = tk.Text(root, height=18, state="disabled", wrap="word", bg="#101018", fg="#e8e8ff")
-    log.pack(fill="both", expand=True, **pad)
+    Btn(r3, "Выбрать", pick_inst).pack(side="left", padx=(8, 0))
+    tk.Label(c3, text="Ключ CurseForge (по желанию, чтобы искать и там, где нет на Modrinth)", bg=CARD, fg=MUT, font=(F, 9)).pack(anchor="w", pady=(10, 2))
+    key = entry(c3, width=50, show="•")
+    key.insert(0, cfg.get("cf_key", ""))
+    key.pack(fill="x", ipady=5)
+    out = cfg.get("out") or (os.path.join(os.path.expanduser("~"), "Desktop") if os.path.isdir(os.path.join(os.path.expanduser("~"), "Desktop")) else os.getcwd())
+
+    # кнопки
+    brow = tk.Frame(root, bg=BG)
+    brow.pack(fill="x", padx=18, pady=(8, 2))
+    btn = Btn(brow, "Положить моды в папку экземпляра", lambda: go("folder"), primary=True)
+    btn.pack(side="left")
+    btn2 = Btn(brow, "Собрать файл для Prism", lambda: go("zip"))
+    btn2.pack(side="left", padx=10)
+    bar = ttk.Progressbar(root, mode="indeterminate", style="Green.Horizontal.TProgressbar")
+    bar.pack(fill="x", padx=18, pady=(8, 0))
+
+    # журнал
+    logf = tk.Frame(root, bg=CARD, highlightthickness=1, highlightbackground=LINE)
+    logf.pack(fill="both", expand=True, padx=18, pady=8)
+    log = tk.Text(logf, height=10, state="disabled", wrap="word", bg="#0c0a16", fg=INK, relief="flat", font=("Consolas", 10), padx=10, pady=8)
+    log.pack(fill="both", expand=True)
+    log.tag_configure("ok", foreground=GREEN)
+    log.tag_configure("warn", foreground="#ffcf6b")
+    log.tag_configure("head", foreground=VIOLET)
 
     def put(s):
         q.put(s)
@@ -509,11 +592,13 @@ def gui():
             while True:
                 s = q.get_nowait()
                 if s is None:
-                    btn.config(state="normal")
-                    btn2.config(state="normal")
+                    btn.enable(True)
+                    btn2.enable(True)
+                    bar.stop()
                     continue
+                tag = "ok" if s.startswith("  +") or s.startswith("Готово") else "warn" if s.startswith("  !") or s.startswith("  -") or s.startswith("Ошибка") else "head" if s.startswith("Жанр") or s.startswith("Ищу") else ""
                 log.config(state="normal")
-                log.insert("end", s + "\n")
+                log.insert("end", s + "\n", tag)
                 log.see("end")
                 log.config(state="disabled")
         except queue.Empty:
@@ -527,36 +612,37 @@ def gui():
             if not b.mods:
                 put("Ничего не нашлось. Попробуй другую версию Minecraft или другие слова.")
             elif args["mode"] == "folder":
-                mods_dir, ok, rep = b.install_to(args["inst"])
+                b.install_to(args["inst"])
                 put("")
-                put("Запусти игру в лаунчере. Версия игры и загрузчик у экземпляра должны быть: %s, %s." % (args["mc"], args["loader"]))
+                put("Запусти игру в лаунчере. У экземпляра должны быть: Minecraft %s и %s." % (args["mc"], args["loader"]))
             else:
-                path, ok, rep = b.write_pack(args["out"], args["name"])
+                path, ok, rep = b.write_pack(args["out"], "Моя сборка")
                 put("")
-                put("КАК ДОБАВИТЬ В PRISM: Добавить экземпляр → Импорт → выбери файл «%s»." % os.path.basename(path))
+                put("В PRISM: Добавить экземпляр → Импорт → выбери файл «%s»." % os.path.basename(path))
         except Exception as e:
             put("Ошибка: %s" % e)
         put(None)
 
     def go(mode):
-        a = {"mode": mode, "inst": inst.get().strip(), "wish": wish.get("1.0", "end").strip(), "mc": mc.get().strip(), "loader": ld.get(), "per_genre": int(pg.get() or 3),
-             "name": nm.get().strip() or "Моя сборка", "base": base.get(), "cf_key": key.get().strip(), "out": out.get()}
+        words = ", ".join([k for _, k in CHIPS if k in picked] + [x.strip() for x in extra.get().split(",") if x.strip()])
+        a = {"mode": mode, "inst": inst.get().strip(), "wish": words, "mc": mc.get().strip(), "loader": ld.get(),
+             "per_genre": int(pg.get() or 3), "base": base.get(), "cf_key": key.get().strip(), "out": out}
         if not a["wish"]:
-            messagebox.showinfo("Сборщик", "Напиши, какую сборку хочешь.")
+            messagebox.showinfo("Сборщик", "Выбери жанры или впиши названия модов.")
             return
         if mode == "folder" and not a["inst"]:
             messagebox.showinfo("Сборщик", "Сначала выбери папку экземпляра в лаунчере.")
             return
-        save_cfg(dict(a, per_genre=a["per_genre"]))
-        btn.config(state="disabled")
-        btn2.config(state="disabled")
+        save_cfg({"chips": sorted(picked), "extra": extra.get(), "mc": a["mc"], "loader": a["loader"], "per_genre": a["per_genre"],
+                  "base": a["base"], "cf_key": a["cf_key"], "inst": a["inst"], "out": out})
+        btn.enable(False)
+        btn2.enable(False)
+        bar.start(12)
         log.config(state="normal")
         log.delete("1.0", "end")
         log.config(state="disabled")
         threading.Thread(target=work, args=(a,), daemon=True).start()
 
-    btn.config(command=lambda: go("folder"))
-    btn2.config(command=lambda: go("zip"))
     pump()
     root.mainloop()
 
