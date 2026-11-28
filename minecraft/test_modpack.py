@@ -77,3 +77,12 @@ with tempfile.TemporaryDirectory() as d:
     assert sorted(os.listdir(mods)) == ["fabric-api.jar", "sodium.jar"] and ok == 2
     assert open(os.path.join(mods, "fabric-api.jar"), "rb").read() == b"old"  # чужое не трогаем
 print("modpack: установка в папку проверена")
+
+# каталог и ручной выбор
+b4 = M.Builder(Fake("K"), "1.20.1", "fabric", lambda s: None, base_opt=False)
+cat = b4.catalog("", "magic")
+assert cat and cat[0]["id"] == "PM" and cat[0]["title"] == "Magic Thing"
+b4.build("", [("PS", "Sodium")])
+assert [m["title"] for m in b4.mods] == ["Sodium", "Fabric API"], b4.mods
+assert b4.mods[0]["why"] == "выбрано вручную"
+print("modpack: каталог и ручной выбор проверены")

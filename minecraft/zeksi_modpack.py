@@ -286,8 +286,19 @@ class Builder:
         if not got:
             self.log("  ничего подходящего для %s %s" % (self.loader, self.mc))
 
-    def build(self, wish):
+    def catalog(self, query="", genre=None, limit=40):
+        """Список модов для окна выбора вручную."""
+        hits = self.mr_search(query.strip(), [genre] if genre else None, limit=limit)
+        return [{"id": h["project_id"], "title": h["title"], "downloads": h.get("downloads", 0), "desc": h.get("description", "")} for h in hits]
+
+    def build(self, wish, manual=None):
         genres, names = parse_wish(wish)
+        for pid, title in (manual or []):
+            if len(self.mods) < self.max_total + len(manual or []):
+                self.log("Выбрано тобой: %s" % title)
+                if not self.add_mr(pid, title, "выбрано вручную"):
+                    self.missing.append(title)
+                    self.log("  - «%s»: нет версии для %s %s" % (title, self.loader, self.mc))
         self.log("Версия %s, загрузчик %s" % (self.mc, self.loader))
         self.log("Жанры: %s" % (", ".join(genres) or "нет") + " | Моды по названию: %s" % (", ".join(names) or "нет"))
         if self.base_opt and "optimization" not in genres:
@@ -434,6 +445,15 @@ CHIPS = [("Оптимизация", "оптимизация"), ("Шейдеры"
          ("Миникарта", "миникарта"), ("Транспорт", "транспорт"), ("Выживание", "выживание"), ("Удобства", "утилиты")]
 
 
+GENRE_LABELS = [("Любой жанр", None), ("Оптимизация", "optimization"), ("Магия", "magic"), ("Техно", "technology"), ("Приключения", "adventure"),
+                ("Мобы", "mobs"), ("Декор", "decoration"), ("Еда", "food"), ("Оружие и броня", "equipment"), ("Хранилища", "storage"),
+                ("Транспорт", "transportation"), ("Генерация мира", "worldgen"), ("Удобства", "utility"), ("Механики", "game-mechanics")]
+
+
+def fmt_num(n):
+    return ("%.1fM" % (n / 1e6) if n >= 1e6 else "%dk" % (n // 1000) if n >= 1000 else str(n)).replace(".0M", "M")
+
+
 def gui():
     import threading
     import queue
@@ -520,6 +540,93 @@ def gui():
     extra = entry(c1, width=60)
     extra.insert(0, cfg.get("extra", "create"))
     extra.pack(fill="x", pady=(8, 0), ipady=5)
+    manual = {}   # id -> название: моды, выбранные в окне каталога
+    mrow = tk.Frame(c1, bg=CARD)
+    mrow.pack(fill="x", pady=(10, 0))
+    man_lbl = tk.Label(mrow, text="Вручную выбрано: 0", bg=CARD, fg=MUT, font=(F, 10))
+
+    def refresh_manual():
+        man_lbl.config(text="Вручную выбрано: %d" % len(manual) + ((" (" + ", ".join(list(manual.values())[:4]) + ("…" if len(manual) > 4 else "") + ")") if manual else ""))
+
+    def clear_manual():
+        manual.clear()
+        refresh_manual()
+
+    def open_catalog():
+        top = tk.Toplevel(root)
+        top.title("Каталог модов")
+        top.configure(bg=BG)
+        top.geometry("760x640")
+        tk.Label(top, text="Каталог модов", bg=BG, fg=GREEN, font=(F, 18, "bold")).pack(anchor="w", padx=16, pady=(14, 0))
+        tk.Label(top, text="Показаны моды для Minecraft %s и %s. Выдели нужные (Ctrl или Shift для нескольких) и нажми «Добавить»." % (mc.get(), ld.get()),
+                 bg=BG, fg=MUT, font=(F, 10), wraplength=720, justify="left").pack(anchor="w", padx=16)
+        srow = tk.Frame(top, bg=BG)
+        srow.pack(fill="x", padx=16, pady=8)
+        qv = tk.StringVar()
+        qe = entry(srow, qv, 30)
+        qe.pack(side="left", fill="x", expand=True, ipady=5)
+        gv = ttk.Combobox(srow, width=16, values=[x[0] for x in GENRE_LABELS], state="readonly")
+        gv.set(GENRE_LABELS[0][0])
+        gv.pack(side="left", padx=8)
+        info = tk.Label(top, text="", bg=BG, fg=MUT, font=(F, 10))
+        lf = tk.Frame(top, bg=CARD, highlightthickness=1, highlightbackground=LINE)
+        lb = tk.Listbox(lf, selectmode="extended", bg="#0c0a16", fg=INK, selectbackground=VIOLET, selectforeground="#10061f", relief="flat",
+                        font=(F, 11), activestyle="none", highlightthickness=0)
+        sb = tk.Scrollbar(lf, command=lb.yview)
+        lb.config(yscrollcommand=sb.set)
+        sb.pack(side="right", fill="y")
+        lb.pack(fill="both", expand=True)
+        hits = []
+        box = {"res": None}
+
+        def show():
+            lb.delete(0, "end")
+            for h in hits:
+                lb.insert("end", ("✓ " if h["id"] in manual else "   ") + "%s   ·  %s скач.  ·  %s" % (h["title"], fmt_num(h["downloads"]), h["desc"][:70]))
+
+        def search():
+            info.config(text="Ищу…")
+            box["res"] = None
+            genre = dict(GENRE_LABELS).get(gv.get())
+            qtxt, m_, l_ = qv.get(), mc.get().strip(), ld.get()
+
+            def job():
+                try:
+                    box["res"] = Builder(Net(), m_, l_, lambda s: None).catalog(qtxt, genre)
+                except Exception as e:
+                    box["res"] = str(e)
+            threading.Thread(target=job, daemon=True).start()
+
+            def check():
+                if box["res"] is None:
+                    top.after(150, check)
+                    return
+                if isinstance(box["res"], str):
+                    info.config(text="Не получилось загрузить: %s" % box["res"])
+                    return
+                hits[:] = box["res"]
+                info.config(text="Найдено: %d. Если пусто, смени версию игры или слова." % len(hits))
+                show()
+            top.after(150, check)
+
+        def add():
+            for i in lb.curselection():
+                manual[hits[i]["id"]] = hits[i]["title"]
+            refresh_manual()
+            show()
+        Btn(srow, "Искать", search).pack(side="left")
+        info.pack(anchor="w", padx=16)
+        lf.pack(fill="both", expand=True, padx=16, pady=8)
+        brow2 = tk.Frame(top, bg=BG)
+        brow2.pack(fill="x", padx=16, pady=(0, 14))
+        Btn(brow2, "Добавить выбранные в сборку", add, primary=True).pack(side="left")
+        Btn(brow2, "Закрыть", top.destroy).pack(side="left", padx=10)
+        qe.bind("<Return>", lambda e: search())
+        search()
+
+    Btn(mrow, "Выбрать моды вручную…", open_catalog).pack(side="left")
+    man_lbl.pack(side="left", padx=12)
+    Btn(mrow, "Сбросить", clear_manual).pack(side="right")
 
     # 2. игра
     c2 = card(root, "2. Какая игра", "Версия и загрузчик должны совпадать со сборкой в лаунчере. Для Prism они подставятся сами.")
@@ -608,7 +715,7 @@ def gui():
     def work(args):
         try:
             b = Builder(Net(args["cf_key"]), args["mc"], args["loader"], put, args["per_genre"], base_opt=args["base"])
-            b.build(args["wish"])
+            b.build(args["wish"], args["manual"])
             if not b.mods:
                 put("Ничего не нашлось. Попробуй другую версию Minecraft или другие слова.")
             elif args["mode"] == "folder":
@@ -626,8 +733,9 @@ def gui():
     def go(mode):
         words = ", ".join([k for _, k in CHIPS if k in picked] + [x.strip() for x in extra.get().split(",") if x.strip()])
         a = {"mode": mode, "inst": inst.get().strip(), "wish": words, "mc": mc.get().strip(), "loader": ld.get(),
-             "per_genre": int(pg.get() or 3), "base": base.get(), "cf_key": key.get().strip(), "out": out}
-        if not a["wish"]:
+             "per_genre": int(pg.get() or 3), "base": base.get(), "cf_key": key.get().strip(), "out": out,
+             "manual": list(manual.items())}
+        if not a["wish"] and not a["manual"]:
             messagebox.showinfo("Сборщик", "Выбери жанры или впиши названия модов.")
             return
         if mode == "folder" and not a["inst"]:
