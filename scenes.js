@@ -130,7 +130,7 @@
   function s5(g, w, h, t) {
     var G = geo(w, h), u = G.u, ah = G.ah, i, k;
     var bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, "#0d0a33"); bg.addColorStop(.55, "#0a0824"); bg.addColorStop(1, "#06051a"); g.fillStyle = bg; g.fillRect(0, 0, w, h);
-    var cx = w / 2, cy = ah * .43, R = 82 * u, cols = ["94,242,255", "255,209,102", "94,230,138", "255,79,216"];
+    var cx = w / 2, cy = ah * .335, R = 68 * u, kk = document.querySelector(".kicker"), kt = kk ? kk.getBoundingClientRect().top : 0; if (kt > 120) { var topY = 74, room = kt - topY - 16; R = Math.max(40, Math.min(R, room * .42)); cy = topY + room / 2; } var cols_unused, cols = ["94,242,255", "255,209,102", "94,230,138", "255,79,216"];
     // северное сияние: три лёгкие волны
     g.save(); g.globalCompositeOperation = "lighter";
     var au = ["94,242,255", "167,123,255", "255,79,216"];
