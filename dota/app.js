@@ -100,8 +100,10 @@
       '<div id="det"><div class="sk" style="margin-top:16px"></div></div>';
     $("cl").onclick = function () { dl.close(); };
     if (!dl.open) dl.showModal();
-    Promise.all([loadItems(), cached("ip" + h.id, API + "heroes/" + h.id + "/itemPopularity"), cached("mu" + h.id, API + "heroes/" + h.id + "/matchups")]).then(function (r) {
-      var items = r[0], pop = r[1], mu = r[2], out = "";
+    Promise.all([loadItems(), cached("ip" + h.id, API + "heroes/" + h.id + "/itemPopularity"),
+      cached("mu" + h.id, API + "heroes/" + h.id + "/matchups").catch(function () { return []; }),
+      cached("tm" + h.id, API + "scenarios/itemTimings?hero_id=" + h.id).catch(function () { return []; })]).then(function (r) {
+      var items = r[0], pop = r[1], mu = r[2], tm = r[3], out = "";
       var PH = [["start_game_items", "Старт"], ["early_game_items", "Начало игры"], ["mid_game_items", "Середина"], ["late_game_items", "Конец игры"]];
       out += "<h3>Что собирать</h3>";
       PH.forEach(function (ph) {
@@ -112,10 +114,28 @@
         if (!arr.length) return;
         out += '<div class="ph">' + ph[1] + '</div><div class="items">' + arr.map(function (x) { return '<div class="it"><img loading="lazy" alt="" src="' + CDN + esc(x[0].i) + '" onerror="this.style.visibility=\'hidden\'">' + esc(x[0].n) + "</div>"; }).join("") + "</div>";
       });
-      var list = mu.filter(function (m) { return m.games_played >= 80 && st.byId[m.hero_id]; }).map(function (m) { return { h: st.byId[m.hero_id], wr: m.wins / m.games_played, n: m.games_played }; });
-      list.sort(function (a, b) { return b.wr - a.wr; });
-      function vr(arr) { return arr.map(function (x) { return '<div class="vr"><img class="ic" alt="" src="' + CDN + esc(x.h.icon.replace(/\?.*$/, "")) + '">' + esc(x.h.localized_name) + "<em class=\"" + (x.wr >= .5 ? "up" : "dn") + '">' + pct(x.wr) + "</em></div>"; }).join(""); }
-      out += '<h3>Против кого играть</h3><div class="vs"><div><div class="ph">Силён против</div>' + vr(list.slice(0, 6)) + '</div><div><div class="ph">Слаб против</div>' + vr(list.slice(-6).reverse()) + "</div></div>";
+      // тайминги: во сколько куплен предмет и какой винрейт, если успел к этому времени
+      var byKey = {}; Object.keys(items).forEach(function (id) { byKey[items[id].k] = items[id]; });
+      var tg = {}, times = {};
+      (tm || []).forEach(function (x) { var g = +x.games, w = +x.wins; if (!byKey[x.item] || !g) return; (tg[x.item] = tg[x.item] || { n: 0, c: {} }).n += g; tg[x.item].c[x.time] = [g, w]; times[x.time] = 1; });
+      var tl = Object.keys(times).map(Number).sort(function (a, b) { return a - b; });
+      var ti = Object.keys(tg).filter(function (k) { return tg[k].n >= 80; }).sort(function (a, b) { return tg[b].n - tg[a].n; }).slice(0, 7);
+      if (ti.length) {
+        out += "<h3>Тайминги предметов</h3><p class=\"sub\" style=\"margin:0 0 8px\">Цифра в клетке: винрейт героя, если предмет собран к этой минуте. Зелёная клетка значит, что так играть выгоднее. Серая значит, что данных мало.</p>";
+        ti.forEach(function (k) {
+          var it = byKey[k], row = tg[k], best = -1, bw = 0;
+          tl.forEach(function (t) { var c = row.c[t]; if (c && c[0] >= 25) { var w = c[1] / c[0]; if (w > bw) { bw = w; best = t; } } });
+          out += '<div class="tmr"><div class="tmh"><img class="ic" loading="lazy" alt="" src="' + CDN + esc(it.i) + '" onerror="this.style.visibility=\'hidden\'"><b>' + esc(it.n) + "</b></div><div class=\"tmg\" style=\"grid-template-columns:repeat(" + tl.length + ',1fr)">' +
+            tl.map(function (t) { var c = row.c[t], lbl = Math.floor(t / 60) + (t % 60 ? ":" + String(t % 60).padStart(2, "0") : ""); if (!c || c[0] < 25) return '<div class="tc0"><small>' + lbl + "</small><span>–</span></div>"; var w = c[1] / c[0]; return '<div class="' + (t === best ? "tcb" : w >= .5 ? "tcu" : "tcd") + '"><small>' + lbl + "</small><span>" + Math.round(w * 100) + "</span></div>"; }).join("") + "</div></div>";
+        });
+      }
+      // матчапы: игр мало, поэтому считаем со сглаживанием и прячем совсем редкие
+      var list = mu.filter(function (m) { return m.games_played >= 12 && st.byId[m.hero_id]; }).map(function (m) { return { h: st.byId[m.hero_id], wr: m.wins / m.games_played, n: m.games_played, s: (m.wins + 8) / (m.games_played + 16) }; });
+      list.sort(function (a, b) { return b.s - a.s; });
+      function vr(arr) { return arr.map(function (x) { return '<div class="vr"><img class="ic" alt="" src="' + CDN + esc(x.h.icon.replace(/\?.*$/, "")) + '">' + esc(x.h.localized_name) + "<em class=\"" + (x.wr >= .5 ? "up" : "dn") + '">' + pct(x.wr) + " <small>" + x.n + " игр</small></em></div>"; }).join(""); }
+      out += '<h3>Против кого играть</h3>';
+      if (list.length >= 4) out += '<div class="vs"><div><div class="ph">Силён против</div>' + vr(list.slice(0, 6)) + '</div><div><div class="ph">Слаб против</div>' + vr(list.slice(-6).reverse()) + "</div></div><p class=\"sub\">Игр на каждую пару мало, поэтому цифры примерные.</p>";
+      else out += '<p class="sub">Пока мало данных по этому герою.</p>';
       $("det").innerHTML = out;
     }).catch(function () { $("det").innerHTML = '<div class="err">Не получилось загрузить подробности. Проверь интернет и нажми на героя ещё раз.</div>'; });
   }
