@@ -49,16 +49,16 @@
   function api(url, tries) {
     tries = tries || 0;
     return fetch(url).then(function (r) {
-      if (r.status === 429 && tries < 3) return sleep(1500 + tries * 1500).then(function () { return api(url, tries + 1); });
+      if (r.status === 429 && tries < 6) return sleep(((+r.headers.get("retry-after") || 0) * 1000) || (1500 + tries * 2000)).then(function () { return api(url, tries + 1); });
       if (!r.ok) throw new Error(r.status);
       return r.json();
     });
   }
   function catOf(loader) { return loader === "quilt" ? ["quilt", "fabric"] : [loader]; }
-  function search(ctx, query, genre, limit) {
+  function search(ctx, query, genre, limit, offset) {
     var facets = [["project_type:mod"], ["versions:" + ctx.mc], catOf(ctx.loader).map(function (l) { return "categories:" + l; }), ["categories!=library"]];
     if (genre) facets.push(["categories:" + genre]);
-    return api(MR + "/search?query=" + encodeURIComponent(query || "") + "&facets=" + encodeURIComponent(JSON.stringify(facets)) + "&limit=" + (limit || 12) + "&index=" + (query ? "relevance" : "downloads")).then(function (r) { return r.hits || []; });
+    return api(MR + "/search?query=" + encodeURIComponent(query || "") + "&facets=" + encodeURIComponent(JSON.stringify(facets)) + "&limit=" + (limit || 12) + (offset ? "&offset=" + offset : "") + "&index=" + (query ? "relevance" : "downloads")).then(function (r) { return r.hits || []; });
   }
   function version(ctx, pid) {
     return api(MR + "/project/" + pid + "/version?loaders=" + encodeURIComponent(JSON.stringify(catOf(ctx.loader))) + "&game_versions=" + encodeURIComponent(JSON.stringify([ctx.mc]))).then(function (vs) {
@@ -69,9 +69,9 @@
   }
 
   // ---- сборка ----
-  function Ctx(mc, loader, log, per, base) {
+  function Ctx(mc, loader, log, per, base, target) {
     this.mc = mc; this.loader = loader; this.log = log; this.per = per; this.base = base;
-    this.mods = []; this.missing = []; this.seen = {}; this.seenIds = {}; this.max = 40;
+    this.mods = []; this.missing = []; this.seen = {}; this.seenIds = {}; this.target = target || 0; this.max = Math.max(40, this.target + 40);
   }
   Ctx.prototype.addMr = function (pid, title, why, icon, depth) {
     var ctx = this; depth = depth || 0;
@@ -129,7 +129,37 @@
     });
     names.forEach(function (n) { chain = chain.then(function () { ctx.log("Ищу «" + n + "»:", "h"); return ctx.addByName(n, base.indexOf(n) >= 0 ? "базовая оптимизация" : "ты просил"); }); });
     w.genres.forEach(function (g) { chain = chain.then(function () { return ctx.addGenre(g); }); });
+    if (ctx.target) chain = chain.then(function () { return ctx.topUp(w.genres); });
     return chain.then(function () { return ctx.mods; });
+  };
+  // Добор до нужного размера: самые популярные моды по жанрам, страница за страницей
+  Ctx.prototype.topUp = function (chosen) {
+    var ctx = this;
+    if (ctx.mods.length >= ctx.target) return Promise.resolve();
+    var order = chosen.concat(["utility", "optimization", "adventure", "decoration", "technology", "magic", "mobs", "equipment", "food", "storage", "worldgen", "transportation", "game-mechanics"].filter(function (g) { return chosen.indexOf(g) < 0; }));
+    ctx.log("Добираю до " + ctx.target + " модов самыми популярными…", "h");
+    var page = 0, idle = 0;
+    function round() {
+      if (ctx.mods.length >= ctx.target || page >= 6 || idle >= order.length) return Promise.resolve();
+      var before = ctx.mods.length;
+      var chain = Promise.resolve();
+      order.forEach(function (g) {
+        chain = chain.then(function () {
+          if (ctx.mods.length >= ctx.target) return;
+          return search(ctx, "", g, 20, page * 20).then(function (hits) {
+            return hits.reduce(function (c, h) {
+              return c.then(function () {
+                if (ctx.mods.length >= ctx.target) return;
+                var n = ctx.mods.length;
+                return ctx.addMr(h.project_id, h.title, "популярный, жанр «" + g + "»", h.icon_url).then(function () { if (ctx.mods.length > n && ctx.mods.length % 10 < (ctx.mods.length - n)) ctx.log("  …уже " + ctx.mods.length + " модов", "ok"); });
+              });
+            }, Promise.resolve());
+          }).catch(function () { });
+        });
+      });
+      return chain.then(function () { idle = ctx.mods.length === before ? idle + 1 : 0; page++; return round(); });
+    }
+    return round().then(function () { if (ctx.mods.length < ctx.target) ctx.log("Нашлось только " + ctx.mods.length + ": для этой версии больше подходящих модов нет.", "w"); });
   };
 
   function loaderVersion(mc, loader) {
@@ -175,7 +205,7 @@
 
   // ---- интерфейс ----
   var st = { chips: {}, manual: {}, running: false };
-  function save() { try { localStorage.setItem("mcb", JSON.stringify({ chips: Object.keys(st.chips), extra: $("extra").value, mc: $("mc").value, ld: $("ld").value, per: $("per").value, base: $("base").checked })); } catch (e) { } }
+  function save() { try { localStorage.setItem("mcb", JSON.stringify({ chips: Object.keys(st.chips), extra: $("extra").value, mc: $("mc").value, ld: $("ld").value, per: $("per").value, size: $("size").value, base: $("base").checked })); } catch (e) { } }
   function load() { try { return JSON.parse(localStorage.getItem("mcb")) || {}; } catch (e) { return {}; } }
   function buildChips() {
     var box = $("chips"); box.innerHTML = "";
@@ -193,12 +223,12 @@
   // ---- ИИ через OpenRouter (у каждого свой ключ) ----
   var AI_KEYS = ["optimization", "magic", "technology", "adventure", "worldgen", "mobs", "decoration", "equipment", "food", "storage", "transportation", "utility", "game-mechanics"];
   function aiCfg() { try { return JSON.parse(localStorage.getItem("mcbai")) || {}; } catch (e) { return {}; } }
-  function aiAsk(key, model, text, mc, loader) {
-    var sys = "Ты помощник по сборкам модов Minecraft. Игрок описывает, какую сборку хочет. Подбери до 12 реально существующих модов для Minecraft " + mc + " и загрузчика " + loader + ". Называй моды точно так, как они называются на Modrinth (например: Sodium, Create, Xaero's Minimap). Не придумывай несуществующих. Ответь ТОЛЬКО JSON без пояснений и без markdown: {\"mods\":[\"название\"],\"genres\":[ключи из списка: " + AI_KEYS.join(", ") + "],\"note\":\"одно короткое предложение по-русски, что получилось\"}.";
+  function aiAsk(key, model, text, mc, loader, want) {
+    var sys = "Ты помощник по сборкам модов Minecraft. Игрок описывает, какую сборку хочет. Подбери до " + want + " реально существующих модов для Minecraft " + mc + " и загрузчика " + loader + ". Называй моды точно так, как они называются на Modrinth (например: Sodium, Create, Xaero's Minimap). Не придумывай несуществующих. Ответь ТОЛЬКО JSON без пояснений и без markdown: {\"mods\":[\"название\"],\"genres\":[ключи из списка: " + AI_KEYS.join(", ") + "],\"note\":\"одно короткое предложение по-русски, что получилось\"}.";
     return fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: { "Authorization": "Bearer " + key, "Content-Type": "application/json", "HTTP-Referer": location.origin, "X-Title": "Zeksi modpack builder" },
-      body: JSON.stringify({ model: model, temperature: 0.3, max_tokens: 700, messages: [{ role: "system", content: sys }, { role: "user", content: text }] })
+      body: JSON.stringify({ model: model, temperature: 0.3, max_tokens: 3000, messages: [{ role: "system", content: sys }, { role: "user", content: text }] })
     }).then(function (r) {
       if (r.status === 401) throw new Error("Ключ не подошёл. Проверь, что скопировал его целиком.");
       if (r.status === 402) throw new Error("На ключе нет денег. Пополни баланс на openrouter.ai или выбери модель с :free.");
@@ -210,7 +240,7 @@
       var m = String(t).match(/\{[\s\S]*\}/);
       if (!m) throw new Error("ИИ ответил не так, как нужно. Попробуй ещё раз или другую модель.");
       var o; try { o = JSON.parse(m[0]); } catch (e) { throw new Error("ИИ ответил не так, как нужно. Попробуй ещё раз или другую модель."); }
-      var mods = (Array.isArray(o.mods) ? o.mods : []).map(function (x) { return String(x).trim(); }).filter(function (x) { return x && x.length < 60 && x.indexOf(",") < 0; }).slice(0, 15);
+      var mods = (Array.isArray(o.mods) ? o.mods : []).map(function (x) { return String(x).trim(); }).filter(function (x) { return x && x.length < 60 && x.indexOf(",") < 0; }).slice(0, want);
       var genres = (Array.isArray(o.genres) ? o.genres : []).filter(function (g) { return AI_KEYS.indexOf(g) >= 0; });
       return { mods: mods, genres: genres, note: String(o.note || "") };
     });
@@ -222,7 +252,7 @@
     if (!key) { $("aiSet").open = true; $("res").innerHTML = '<div class="err">Вставь ключ OpenRouter в поле «Ключ и модель».</div>'; $("aiKey").focus(); return; }
     try { localStorage.setItem("mcbai", JSON.stringify($("aiSave").checked ? { key: key, model: model, save: true, text: text } : { model: model, text: text })); } catch (e) { }
     $("aiGo").disabled = true; $("aiGo").textContent = "ИИ думает…"; $("res").innerHTML = ""; $("log").innerHTML = "";
-    aiAsk(key, model, text, $("mc").value, $("ld").value).then(function (a) {
+    aiAsk(key, model, text, $("mc").value, $("ld").value, Math.min(60, Math.max(12, +$("size").value || 12))).then(function (a) {
       var kw = a.genres.map(function (g) { return GENRES.filter(function (x) { return x[0] === g; })[0][1][0]; });
       var all = a.mods.concat(kw);
       if (!all.length) throw new Error("ИИ ничего не подобрал. Опиши подробнее.");
@@ -241,7 +271,7 @@
     var manual = Object.keys(st.manual).map(function (id) { return { id: id, title: st.manual[id].title, icon: st.manual[id].icon }; });
     if (!wish && !manual.length) { $("res").innerHTML = '<div class="err">Выбери жанры, впиши названия или добавь моды вручную.</div>'; return; }
     save(); st.running = true; $("go").disabled = true; $("bar").hidden = false; $("log").innerHTML = ""; $("res").innerHTML = "";
-    var ctx = new Ctx($("mc").value, $("ld").value, logLine, +$("per").value, $("base").checked);
+    var ctx = new Ctx($("mc").value, $("ld").value, logLine, +$("per").value, $("base").checked, +$("size").value);
     ctx.run(wish, manual).then(function () {
       if (!ctx.mods.length) { $("res").innerHTML = '<div class="err">Ничего не нашлось. Попробуй другую версию Minecraft, другой загрузчик или другие слова.</div>'; return; }
       logLine("Узнаю версию загрузчика…", "h");
@@ -280,16 +310,16 @@
   function init() {
     var cfg = load();
     (cfg.chips || []).forEach(function (k) { st.chips[k] = 1; });
-    $("extra").value = cfg.extra || ""; if (cfg.per) $("per").value = cfg.per; if (cfg.ld) $("ld").value = cfg.ld; if (cfg.base === false) $("base").checked = false;
+    $("extra").value = cfg.extra || ""; if (cfg.per) $("per").value = cfg.per; if (cfg.size) $("size").value = cfg.size; if (cfg.ld) $("ld").value = cfg.ld; if (cfg.base === false) $("base").checked = false;
     buildChips(); manualN();
     var sel = $("mc"), want = cfg.mc || "1.20.1";
     function fill(list) { sel.innerHTML = list.map(function (v) { return "<option>" + esc(v) + "</option>"; }).join(""); sel.value = list.indexOf(want) >= 0 ? want : list[0]; }
     fill(["1.21.1", "1.20.4", "1.20.1", "1.19.2"]);
-    api(MR + "/tag/game_version").then(function (vs) { var rel = vs.filter(function (v) { return v.version_type === "release"; }).map(function (v) { return v.version; }).slice(0, 30); if (rel.length) fill(rel); }).catch(function () { });
+    api(MR + "/tag/game_version").then(function (vs) { var rel = vs.filter(function (v) { return v.version_type === "release"; }).map(function (v) { return v.version; }).slice(0, 80); if (rel.length) fill(rel); }).catch(function () { });
     $("dg").innerHTML = GENRE_LABELS.map(function (g) { return '<option value="' + g[1] + '">' + esc(g[0]) + "</option>"; }).join("");
     $("go").onclick = go; $("aiGo").onclick = aiGo;
     var ac = aiCfg(); $("aiKey").value = ac.key || ""; $("aiModel").value = ac.model || "openai/gpt-4o-mini"; $("aiSave").checked = !!ac.save; if (ac.text) $("aiText").value = ac.text;
-    ["mc", "ld", "per", "base"].forEach(function (id) { $(id).onchange = save; });
+    ["mc", "ld", "per", "base", "size"].forEach(function (id) { $(id).onchange = save; });
     $("extra").oninput = save;
     $("catBtn").onclick = function () { $("dhint").textContent = "Моды для Minecraft " + $("mc").value + " и " + $("ld").value + ". Нажимай на карточки, чтобы выбрать, потом «Добавить выбранные»."; $("dlg").showModal(); searchCat(); };
     $("dclose").onclick = function () { $("dlg").close(); };
