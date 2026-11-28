@@ -1,0 +1,7 @@
+{
+  "required": true,
+  "package": "zeksi.cubeform.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": ["PlayerRendererMixin"],
+  "injectors": { "defaultRequire": 1 }
+}

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "cubeform",
+  "version": "${version}",
+  "name": "Cube Form",
+  "description": "Превращай себя в куб с красивыми частицами. Команда /cube или клавиша V.",
+  "authors": ["Зекси"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": { "client": ["zeksi.cubeform.CubeFormClient"] },
+  "mixins": ["cubeform.mixins.json"],
+  "depends": { "fabricloader": ">=0.16.0", "minecraft": "~1.21.1", "java": ">=21", "fabric-api": "*" }
+}
