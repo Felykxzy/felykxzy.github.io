@@ -86,3 +86,12 @@ b4.build("", [("PS", "Sodium")])
 assert [m["title"] for m in b4.mods] == ["Sodium", "Fabric API"], b4.mods
 assert b4.mods[0]["why"] == "выбрано вручную"
 print("modpack: каталог и ручной выбор проверены")
+
+# размер иконок
+import struct
+png = b"\x89PNG\r\n\x1a\n" + struct.pack(">I", 13) + b"IHDR" + struct.pack(">II", 512, 512) + b"\x08\x06\x00\x00\x00"
+assert M.png_width(png) == 512 and M.shrink_factor(512) == 11 and M.shrink_factor(48) == 1 and M.png_width(b"RIFFxxxxWEBP") == 0
+assert M.shrink_factor(0) == 1
+cat = M.Builder(Fake("K"), "1.20.1", "fabric", lambda s: None).catalog("", "magic")
+assert "icon" in cat[0]
+print("modpack: иконки проверены")

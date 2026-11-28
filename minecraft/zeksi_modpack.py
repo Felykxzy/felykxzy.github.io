@@ -289,7 +289,7 @@ class Builder:
     def catalog(self, query="", genre=None, limit=40):
         """Список модов для окна выбора вручную."""
         hits = self.mr_search(query.strip(), [genre] if genre else None, limit=limit)
-        return [{"id": h["project_id"], "title": h["title"], "downloads": h.get("downloads", 0), "desc": h.get("description", "")} for h in hits]
+        return [{"id": h["project_id"], "title": h["title"], "downloads": h.get("downloads", 0), "desc": h.get("description", ""), "icon": h.get("icon_url") or ""} for h in hits]
 
     def build(self, wish, manual=None):
         genres, names = parse_wish(wish)
@@ -450,6 +450,17 @@ GENRE_LABELS = [("Любой жанр", None), ("Оптимизация", "optim
                 ("Транспорт", "transportation"), ("Генерация мира", "worldgen"), ("Удобства", "utility"), ("Механики", "game-mechanics")]
 
 
+def png_width(data):
+    """Ширина PNG из заголовка (без внешних библиотек). 0, если это не PNG."""
+    if data[:8] == b"\x89PNG\r\n\x1a\n" and len(data) > 24:
+        return int.from_bytes(data[16:20], "big")
+    return 0
+
+
+def shrink_factor(width, target=48):
+    return max(1, int(round(width / float(target)))) if width else 1
+
+
 def fmt_num(n):
     return ("%.1fM" % (n / 1e6) if n >= 1e6 else "%dk" % (n // 1000) if n >= 1000 else str(n)).replace(".0M", "M")
 
@@ -553,13 +564,14 @@ def gui():
         refresh_manual()
 
     def open_catalog():
+        import base64
         top = tk.Toplevel(root)
         top.title("Каталог модов")
         top.configure(bg=BG)
-        top.geometry("760x640")
+        top.geometry("820x700")
         tk.Label(top, text="Каталог модов", bg=BG, fg=GREEN, font=(F, 18, "bold")).pack(anchor="w", padx=16, pady=(14, 0))
-        tk.Label(top, text="Показаны моды для Minecraft %s и %s. Выдели нужные (Ctrl или Shift для нескольких) и нажми «Добавить»." % (mc.get(), ld.get()),
-                 bg=BG, fg=MUT, font=(F, 10), wraplength=720, justify="left").pack(anchor="w", padx=16)
+        tk.Label(top, text="Моды для Minecraft %s и %s. Нажимай на карточки, чтобы выбрать (повторное нажатие снимает выбор), потом «Добавить»." % (mc.get(), ld.get()),
+                 bg=BG, fg=MUT, font=(F, 10), wraplength=780, justify="left").pack(anchor="w", padx=16)
         srow = tk.Frame(top, bg=BG)
         srow.pack(fill="x", padx=16, pady=8)
         qv = tk.StringVar()
@@ -570,23 +582,99 @@ def gui():
         gv.pack(side="left", padx=8)
         info = tk.Label(top, text="", bg=BG, fg=MUT, font=(F, 10))
         lf = tk.Frame(top, bg=CARD, highlightthickness=1, highlightbackground=LINE)
-        lb = tk.Listbox(lf, selectmode="extended", bg="#0c0a16", fg=INK, selectbackground=VIOLET, selectforeground="#10061f", relief="flat",
-                        font=(F, 11), activestyle="none", highlightthickness=0)
-        sb = tk.Scrollbar(lf, command=lb.yview)
-        lb.config(yscrollcommand=sb.set)
+        cv = tk.Canvas(lf, bg=BG, highlightthickness=0)
+        sb = tk.Scrollbar(lf, command=cv.yview)
+        cv.config(yscrollcommand=sb.set)
         sb.pack(side="right", fill="y")
-        lb.pack(fill="both", expand=True)
-        hits = []
-        box = {"res": None}
+        cv.pack(side="left", fill="both", expand=True)
+        inner = tk.Frame(cv, bg=BG)
+        win = cv.create_window((0, 0), window=inner, anchor="nw")
+        inner.bind("<Configure>", lambda e: cv.config(scrollregion=cv.bbox("all")))
+        cv.bind("<Configure>", lambda e: cv.itemconfigure(win, width=e.width))
+        top.bind("<MouseWheel>", lambda e: cv.yview_scroll(int(-e.delta / 120) or (-1 if e.delta > 0 else 1), "units"))
+        SEL = "#352c63"
+        state = {"token": 0, "rows": {}, "sel": set(), "imgs": []}
+        icq = queue.Queue()
 
-        def show():
-            lb.delete(0, "end")
+        def paint(pid):
+            row = state["rows"].get(pid)
+            if not row:
+                return
+            col = SEL if pid in state["sel"] else CARD
+            row["frame"].config(bg=col)
+            for w in row["bg"]:
+                w.config(bg=col)
+            row["badge"].config(text="✓ в сборке" if pid in manual else ("выбрано" if pid in state["sel"] else ""))
+
+        def toggle(pid):
+            state["sel"].symmetric_difference_update({pid})
+            paint(pid)
+
+        def build_rows(hits):
+            for w in inner.winfo_children():
+                w.destroy()
+            state["rows"], state["sel"] = {}, set()
             for h in hits:
-                lb.insert("end", ("✓ " if h["id"] in manual else "   ") + "%s   ·  %s скач.  ·  %s" % (h["title"], fmt_num(h["downloads"]), h["desc"][:70]))
+                fr = tk.Frame(inner, bg=CARD, highlightthickness=1, highlightbackground=LINE, cursor="hand2")
+                fr.pack(fill="x", padx=6, pady=3)
+                tile = "#%02x%02x%02x" % (60 + (hash(h["id"]) % 90), 50 + (hash(h["id"][::-1]) % 80), 120 + (hash(h["title"]) % 100))
+                ic = tk.Label(fr, text=(h["title"][:1] or "?").upper(), bg=tile, fg="#ffffff", font=(F, 16, "bold"), width=3, height=1)
+                ic.pack(side="left", padx=10, pady=8)
+                tx = tk.Frame(fr, bg=CARD)
+                tx.pack(side="left", fill="x", expand=True, pady=6)
+                t1 = tk.Label(tx, text=h["title"], bg=CARD, fg=INK, font=(F, 12, "bold"), anchor="w")
+                t1.pack(fill="x")
+                t2 = tk.Label(tx, text=h["desc"][:120], bg=CARD, fg=MUT, font=(F, 9), anchor="w", justify="left", wraplength=560)
+                t2.pack(fill="x")
+                t3 = tk.Label(tx, text="%s скачиваний" % fmt_num(h["downloads"]), bg=CARD, fg=VIOLET, font=(F, 9, "bold"), anchor="w")
+                t3.pack(fill="x")
+                badge = tk.Label(fr, text="", bg=CARD, fg=GREEN, font=(F, 10, "bold"))
+                badge.pack(side="right", padx=12)
+                state["rows"][h["id"]] = {"frame": fr, "icon": ic, "bg": [tx, t1, t2, t3, badge], "tile": tile}
+                for w in (fr, ic, tx, t1, t2, t3, badge):
+                    w.bind("<Button-1>", lambda e, p=h["id"]: toggle(p))
+                paint(h["id"])
+            cv.yview_moveto(0)
+
+        def load_icons(hits, token):
+            for h in hits:
+                if state["token"] != token:
+                    return
+                if h["icon"] and h["icon"].lower().split("?")[0].endswith(".png"):
+                    try:
+                        icq.put((token, h["id"], Net().bytes(h["icon"])))
+                    except Exception:
+                        pass
+
+        def poll():
+            try:
+                while True:
+                    token, pid, data = icq.get_nowait()
+                    row = state["rows"].get(pid)
+                    if token != state["token"] or not row:
+                        continue
+                    try:
+                        img = tk.PhotoImage(data=base64.b64encode(data))
+                        k = shrink_factor(png_width(data))
+                        if k > 1:
+                            img = img.subsample(k, k)
+                        state["imgs"].append(img)
+                        row["icon"].config(image=img, text="", width=img.width(), height=img.height(), bg=CARD)
+                    except Exception:
+                        pass
+            except queue.Empty:
+                pass
+            try:
+                if top.winfo_exists():
+                    top.after(150, poll)
+            except Exception:
+                pass
 
         def search():
             info.config(text="Ищу…")
-            box["res"] = None
+            state["token"] += 1
+            token = state["token"]
+            box = {"res": None}
             genre = dict(GENRE_LABELS).get(gv.get())
             qtxt, m_, l_ = qv.get(), mc.get().strip(), ld.get()
 
@@ -598,22 +686,27 @@ def gui():
             threading.Thread(target=job, daemon=True).start()
 
             def check():
+                if state["token"] != token:
+                    return
                 if box["res"] is None:
                     top.after(150, check)
                     return
                 if isinstance(box["res"], str):
                     info.config(text="Не получилось загрузить: %s" % box["res"])
                     return
-                hits[:] = box["res"]
+                hits = box["res"]
                 info.config(text="Найдено: %d. Если пусто, смени версию игры или слова." % len(hits))
-                show()
+                build_rows(hits)
+                threading.Thread(target=load_icons, args=(hits, token), daemon=True).start()
             top.after(150, check)
 
         def add():
-            for i in lb.curselection():
-                manual[hits[i]["id"]] = hits[i]["title"]
+            for pid in list(state["sel"]):
+                manual[pid] = state["rows"][pid]["bg"][1].cget("text")
+            state["sel"].clear()
             refresh_manual()
-            show()
+            for pid in state["rows"]:
+                paint(pid)
         Btn(srow, "Искать", search).pack(side="left")
         info.pack(anchor="w", padx=16)
         lf.pack(fill="both", expand=True, padx=16, pady=8)
@@ -622,6 +715,7 @@ def gui():
         Btn(brow2, "Добавить выбранные в сборку", add, primary=True).pack(side="left")
         Btn(brow2, "Закрыть", top.destroy).pack(side="left", padx=10)
         qe.bind("<Return>", lambda e: search())
+        poll()
         search()
 
     Btn(mrow, "Выбрать моды вручную…", open_catalog).pack(side="left")
