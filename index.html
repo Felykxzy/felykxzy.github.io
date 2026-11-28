@@ -58,7 +58,7 @@ header{position:absolute;z-index:5;left:0;right:0;top:0;display:flex;justify-con
 }
 .chips{margin-top:22px;display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:460px}
 .chips a{display:inline-flex;align-items:center;height:44px;padding:0 18px;border-radius:99px;font:800 15px var(--body);color:#fff;text-decoration:none;background:rgba(255,255,255,.13);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-.chips{margin-top:16px;gap:8px}.chips a{height:42px;padding:0 11px;font-size:14px}.chips a:hover{background:rgba(255,255,255,.22)}.go{border:0;cursor:pointer}
+.chips{margin-top:16px;gap:8px}.chips a{height:42px;padding:0 11px;font-size:14px}.chips a.tool{background:rgba(94,242,255,.16);color:#bff7ff}.chips a:hover{background:rgba(255,255,255,.22)}.go{border:0;cursor:pointer}
 @media (min-width:900px) and (min-aspect-ratio:12/10){.chips{justify-content:flex-start}}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media (prefers-reduced-motion:reduce){.play{animation:none}#deck{transition:none}}
@@ -69,7 +69,7 @@ header{position:absolute;z-index:5;left:0;right:0;top:0;display:flex;justify-con
 <header><div class="logo"><b><i></i><i></i><i></i></b><span id="ttl">ПОРТФОЛИО</span></div><button id="ins" type="button">Как установить</button></header>
 <main id="deck">
 <section class="slide me" data-i="0" style="--bgc:#12102f;--c:#a77bff" aria-label="Зекси"><canvas></canvas>
-<div class="info"><div class="kicker">разработчик</div><h2>Зекси</h2><p class="tag">Делаю небольшие игры и сайты, которые открываются за секунду на телефоне. Всё бесплатно и без регистрации.</p><button class="play go" id="goG" type="button"><i>▶</i>МОИ ИГРЫ</button><nav class="chips" aria-label="Соцсети"><a href="https://t.me/kilozexui">Telegram</a><a href="https://www.instagram.com/zehooww">Instagram</a><a href="https://www.tiktok.com/@zywhooq">TikTok</a><a href="https://github.com/Felykxzy">GitHub</a></nav></div></section>
+<div class="info"><div class="kicker">разработчик</div><h2>Зекси</h2><p class="tag">Делаю небольшие игры и сайты, которые открываются за секунду на телефоне. Всё бесплатно и без регистрации.</p><button class="play go" id="goG" type="button"><i>▶</i>МОИ ИГРЫ</button><nav class="chips" aria-label="Соцсети"><a href="https://t.me/kilozexui">Telegram</a><a href="https://www.instagram.com/zehooww">Instagram</a><a href="https://www.tiktok.com/@zywhooq">TikTok</a><a href="https://github.com/Felykxzy">GitHub</a><a href="dota/" class="tool">Дота-гайд</a></nav></div></section>
 <a class="slide" data-i="1" href="https://felykxzy.github.io/slovopad.game/?from=hub" style="--bgc:#0b0a2c;--c:#5ef2ff" aria-label="СЛОВОПАД"><canvas></canvas>
 <div class="info"><div class="kicker">печатай быстрее</div><h2>СЛОВОПАД</h2><p class="tag">Слова падают, ты печатаешь. Не дай им коснуться щита.</p><span class="play"><i>▶</i>ИГРАТЬ</span></div></a>
 <a class="slide" data-i="2" href="https://felykxzy.github.io/stopka/?from=hub" style="--bgc:#1c1a52;--c:#ffd166" aria-label="Стопка"><canvas></canvas>
@@ -86,6 +86,6 @@ header{position:absolute;z-index:5;left:0;right:0;top:0;display:flex;justify-con
 <nav id="dock" aria-label="Игры"></nav>
 <div id="how"><div><h3>Как установить</h3><p><b>iPhone:</b> открой в Safari, нажми «Поделиться» и выбери «На экран Домой».</p><p><b>Android:</b> в Chrome нажми меню ⋮ и выбери «Установить приложение».</p><p><b>Компьютер:</b> нажми значок установки справа в адресной строке.</p><button id="hx" type="button">Понятно</button></div></div>
 </div>
-<script src="scenes.js?v=11"></script>
-<script src="app.js?v=11"></script>
+<script src="scenes.js?v=12"></script>
+<script src="app.js?v=12"></script>
 </body></html>
