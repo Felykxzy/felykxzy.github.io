@@ -61,3 +61,19 @@ b2 = M.Builder(Fake(""), "1.20.1", "fabric", lambda s: None, base_opt=False)
 b2.build("xaero's minimap")
 assert b2.missing == ["Xaero's Minimap"]
 print("modpack: все проверки прошли")
+
+# установка прямо в папку экземпляра + определение версии из mmc-pack.json
+with tempfile.TemporaryDirectory() as d:
+    inst = os.path.join(d, "Моя")
+    os.makedirs(os.path.join(inst, ".minecraft", "mods"))
+    json.dump({"components": [{"uid": "net.minecraft", "version": "1.20.1"}, {"uid": "net.neoforged", "version": "47"}], "formatVersion": 1}, open(os.path.join(inst, "mmc-pack.json"), "w"))
+    mods, mc, ld = M.detect_instance(inst)
+    assert mods == os.path.join(inst, ".minecraft", "mods") and mc == "1.20.1" and ld == "neoforge", (mods, mc, ld)
+    assert M.detect_instance(os.path.join(inst, ".minecraft", "mods"))[0] == os.path.join(inst, ".minecraft", "mods")
+    open(os.path.join(mods, "fabric-api.jar"), "wb").write(b"old")
+    b3 = M.Builder(Fake("K"), "1.20.1", "fabric", lambda s: None, base_opt=False)
+    b3.build("sodium")
+    md, ok, rep = b3.install_to(inst)
+    assert sorted(os.listdir(mods)) == ["fabric-api.jar", "sodium.jar"] and ok == 2
+    assert open(os.path.join(mods, "fabric-api.jar"), "rb").read() == b"old"  # чужое не трогаем
+print("modpack: установка в папку проверена")

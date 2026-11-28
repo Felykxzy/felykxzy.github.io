@@ -332,6 +332,34 @@ class Builder:
         self.log("Готово: %s (модов: %d)" % (path, ok))
         return path, ok, report
 
+    def install_to(self, folder):
+        """Кладёт моды прямо в папку mods выбранного экземпляра (Prism, официальный лаунчер и т.д.)."""
+        mods_dir, _, _ = detect_instance(folder)
+        os.makedirs(mods_dir, exist_ok=True)
+        ok, bad = 0, []
+        for i, m in enumerate(self.mods, 1):
+            dest = os.path.join(mods_dir, m["filename"])
+            if os.path.exists(dest):
+                self.log("Уже есть: %s" % m["filename"])
+                ok += 1
+                continue
+            self.log("Скачиваю %d/%d: %s" % (i, len(self.mods), m["filename"]))
+            try:
+                data = self.net.bytes(m["url"])
+                if m.get("sha1") and hashlib.sha1(data).hexdigest() != m["sha1"].lower():
+                    raise ValueError("не совпала контрольная сумма")
+                with open(dest, "wb") as f:
+                    f.write(data)
+                ok += 1
+            except Exception as e:
+                bad.append((m["title"], str(e)))
+                self.log("  ошибка: %s (%s)" % (m["title"], e))
+        report = self.report(bad)
+        with io.open(os.path.join(os.path.dirname(mods_dir.rstrip("/\\")) or folder, "отчёт сборщика модов.txt"), "w", encoding="utf-8") as f:
+            f.write(report)
+        self.log("Готово: моды лежат в %s (модов: %d)" % (mods_dir, ok))
+        return mods_dir, ok, report
+
     def report(self, bad):
         L = ["Сборка: Minecraft %s, %s" % (self.mc, self.loader), "", "Моды в сборке:"]
         for m in self.mods:
@@ -344,6 +372,42 @@ class Builder:
         if bad:
             L += ["", "Не скачалось:"] + ["  - %s: %s" % b for b in bad]
         return "\n".join(L) + "\n"
+
+
+def detect_instance(folder):
+    """По выбранной папке находим папку mods и, если это экземпляр Prism, версию игры и загрузчик."""
+    folder = os.path.abspath(folder)
+    mc = loader = None
+    for base in (folder, os.path.dirname(folder)):
+        p = os.path.join(base, "mmc-pack.json")
+        if os.path.exists(p):
+            try:
+                with io.open(p, encoding="utf-8") as f:
+                    for c in json.load(f).get("components", []):
+                        if c.get("uid") == "net.minecraft":
+                            mc = c.get("version")
+                        for ld, uid in LOADER_UID.items():
+                            if c.get("uid") == uid:
+                                loader = ld
+            except Exception:
+                pass
+            break
+    if os.path.basename(folder).lower() == "mods":
+        mods = folder
+    else:
+        mods = None
+        for sub in (".minecraft", "minecraft", ""):
+            cand = os.path.join(folder, sub) if sub else folder
+            if os.path.isdir(os.path.join(cand, "mods")):
+                mods = os.path.join(cand, "mods")
+                break
+        if not mods:
+            for sub in (".minecraft", "minecraft"):
+                if os.path.isdir(os.path.join(folder, sub)):
+                    mods = os.path.join(folder, sub, "mods")
+                    break
+        mods = mods or os.path.join(folder, "mods")
+    return mods, mc, loader
 
 
 def load_cfg():
@@ -405,14 +469,35 @@ def gui():
     key = ttk.Entry(root, show="•")
     key.insert(0, cfg.get("cf_key", ""))
     key.pack(fill="x", **pad)
+    ttk.Label(root, text="Папка экземпляра в лаунчере (Prism: правый клик на сборке → «Папка»; можно и просто папка mods):").pack(anchor="w", **pad)
+    row4 = ttk.Frame(root)
+    row4.pack(fill="x", **pad)
+    inst = tk.StringVar(value=cfg.get("inst", ""))
+    ttk.Entry(row4, textvariable=inst, width=56).pack(side="left")
+
+    def pick_inst():
+        d = filedialog.askdirectory()
+        if not d:
+            return
+        inst.set(d)
+        _, m_, l_ = detect_instance(d)
+        if m_:
+            mc.set(m_)
+        if l_:
+            ld.set(l_)
+    ttk.Button(row4, text="Выбрать", command=pick_inst).pack(side="left", padx=6)
     row3 = ttk.Frame(root)
     row3.pack(fill="x", **pad)
     out = tk.StringVar(value=cfg.get("out", os.path.join(os.path.expanduser("~"), "Desktop") if os.path.isdir(os.path.join(os.path.expanduser("~"), "Desktop")) else os.getcwd()))
     ttk.Label(row3, text="Куда сохранить:").pack(side="left")
     ttk.Entry(row3, textvariable=out, width=48).pack(side="left", padx=6)
     ttk.Button(row3, text="Выбрать", command=lambda: out.set(filedialog.askdirectory() or out.get())).pack(side="left")
-    btn = ttk.Button(root, text="Собрать сборку")
-    btn.pack(**pad)
+    brow = ttk.Frame(root)
+    brow.pack(**pad)
+    btn = ttk.Button(brow, text="Положить моды в папку экземпляра")
+    btn.pack(side="left", padx=6)
+    btn2 = ttk.Button(brow, text="Собрать файл для импорта в Prism")
+    btn2.pack(side="left", padx=6)
     log = tk.Text(root, height=18, state="disabled", wrap="word", bg="#101018", fg="#e8e8ff")
     log.pack(fill="both", expand=True, **pad)
 
@@ -425,6 +510,7 @@ def gui():
                 s = q.get_nowait()
                 if s is None:
                     btn.config(state="normal")
+                    btn2.config(state="normal")
                     continue
                 log.config(state="normal")
                 log.insert("end", s + "\n")
@@ -440,6 +526,10 @@ def gui():
             b.build(args["wish"])
             if not b.mods:
                 put("Ничего не нашлось. Попробуй другую версию Minecraft или другие слова.")
+            elif args["mode"] == "folder":
+                mods_dir, ok, rep = b.install_to(args["inst"])
+                put("")
+                put("Запусти игру в лаунчере. Версия игры и загрузчик у экземпляра должны быть: %s, %s." % (args["mc"], args["loader"]))
             else:
                 path, ok, rep = b.write_pack(args["out"], args["name"])
                 put("")
@@ -448,20 +538,25 @@ def gui():
             put("Ошибка: %s" % e)
         put(None)
 
-    def go():
-        a = {"wish": wish.get("1.0", "end").strip(), "mc": mc.get().strip(), "loader": ld.get(), "per_genre": int(pg.get() or 3),
+    def go(mode):
+        a = {"mode": mode, "inst": inst.get().strip(), "wish": wish.get("1.0", "end").strip(), "mc": mc.get().strip(), "loader": ld.get(), "per_genre": int(pg.get() or 3),
              "name": nm.get().strip() or "Моя сборка", "base": base.get(), "cf_key": key.get().strip(), "out": out.get()}
         if not a["wish"]:
             messagebox.showinfo("Сборщик", "Напиши, какую сборку хочешь.")
             return
+        if mode == "folder" and not a["inst"]:
+            messagebox.showinfo("Сборщик", "Сначала выбери папку экземпляра в лаунчере.")
+            return
         save_cfg(dict(a, per_genre=a["per_genre"]))
         btn.config(state="disabled")
+        btn2.config(state="disabled")
         log.config(state="normal")
         log.delete("1.0", "end")
         log.config(state="disabled")
         threading.Thread(target=work, args=(a,), daemon=True).start()
 
-    btn.config(command=go)
+    btn.config(command=lambda: go("folder"))
+    btn2.config(command=lambda: go("zip"))
     pump()
     root.mainloop()
 
