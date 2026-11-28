@@ -21,7 +21,7 @@
     cur = Math.max(0, Math.min(N - 1, i)); if (instant) deck.style.transition = "none";
     deck.style.transform = "translateX(" + (-cur * 100 / N) + "%)"; if (instant) { void deck.offsetWidth; deck.style.transition = ""; }
     [].forEach.call(dock.children, function (b, k) { b.setAttribute("aria-current", k === cur ? "true" : "false"); if (k === cur) document.getElementById("app").style.setProperty("--ac", b.style.getPropertyValue("--c")); });
-    var tt = document.getElementById("ttl"), nm = cur === 0 ? "ПОРТФОЛИО" : cur === N - 1 ? "СЕКРЕТ" : "ИГРЫ";
+    var tt = document.getElementById("ttl"), nm = cur === 0 ? "ПОРТФОЛИО" : cur === N - 1 ? "СЕКРЕТ" : cur === N - 2 ? "УТИЛИТЫ" : "ИГРЫ";
     if (tt && tt.textContent !== nm) { if (instant) tt.textContent = nm; else { tt.classList.add("sw"); setTimeout(function () { tt.textContent = nm; tt.classList.remove("sw"); }, 180); } }
     document.getElementById("pv").hidden = cur === 0; document.getElementById("nx").hidden = cur === N - 1;
     slides.forEach(function (s, k) { s.tabIndex = k === cur ? 0 : -1; });

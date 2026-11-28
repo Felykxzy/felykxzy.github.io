@@ -190,6 +190,29 @@
     var sy = ((t * .18) % 1.2) * ah; g.fillStyle = "rgba(167,123,255,.07)"; g.fillRect(0, sy, w, 22 * u);
     for (i = 0; i < ah; i += 4) { g.fillStyle = "rgba(0,0,0,.18)"; g.fillRect(0, i, w, 1); }
   }
-  window.SCENES = [s5, s1, s2, s3, s4, s6];
-  window.SCENE_THUMB_T = [1.4, 3.2, 5.1, 6.4, 2.6, 4.2];
+  /* 7. Утилиты: чертёж с шестерёнками */
+  function gear(g, cx, cy, r, n, rot, col, u) {
+    g.save(); g.translate(cx, cy); g.rotate(rot); g.beginPath();
+    for (var i = 0; i < n * 2; i++) { var a = i * Math.PI / n, rr = i % 2 ? r : r * 1.16; g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+    g.closePath(); g.fillStyle = "rgba(" + col + ",.12)"; g.fill(); g.lineWidth = 2.5 * u; g.strokeStyle = "rgba(" + col + ",.85)"; g.stroke();
+    g.beginPath(); g.arc(0, 0, r * .38, 0, TAU); g.stroke();
+    for (i = 0; i < 4; i++) { g.beginPath(); g.moveTo(Math.cos(i * 1.5708) * r * .38, Math.sin(i * 1.5708) * r * .38); g.lineTo(Math.cos(i * 1.5708) * r * .8, Math.sin(i * 1.5708) * r * .8); g.stroke(); }
+    g.restore();
+  }
+  function s7(g, w, h, t) {
+    var G = geo(w, h), u = G.u, ah = G.ah, i;
+    var bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, "#06242b"); bg.addColorStop(1, "#050d18"); g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    g.strokeStyle = "rgba(94,242,255,.08)"; g.lineWidth = 1; var s = 36 * u, off = (t * 8 * u) % s;
+    for (i = -1; i < w / s + 1; i++) { g.beginPath(); g.moveTo(i * s + off, 0); g.lineTo(i * s + off, h); g.stroke(); }
+    for (i = -1; i < h / s + 1; i++) { g.beginPath(); g.moveTo(0, i * s + off); g.lineTo(w, i * s + off); g.stroke(); }
+    var cx = w / 2, cy = ah * .4;
+    glow(g, cx, cy, 190 * u, "94,242,255", .2);
+    gear(g, cx - 42 * u, cy + 6 * u, 66 * u, 12, t * .5, "94,242,255", u);
+    gear(g, cx + 70 * u, cy - 44 * u, 44 * u, 9, -t * .5 * 12 / 9 + .2, "255,209,102", u);
+    gear(g, cx + 58 * u, cy + 66 * u, 30 * u, 7, t * .5 * 12 / 7 + .1, "94,230,138", u);
+    g.font = "800 " + 22 * u + "px " + FONT; g.textAlign = "center"; g.textBaseline = "middle"; g.fillStyle = "rgba(94,242,255,.9)"; g.fillText("</>", cx - 42 * u, cy + 6 * u);
+    for (i = 0; i < 18; i++) { var px = (rnd(i + 1) * w + t * 10 * u * (1 + rnd(i))) % w, py = rnd(i + 31) * ah; g.fillStyle = "rgba(94,242,255," + (.15 + .25 * Math.abs(Math.sin(t + i))) + ")"; g.fillRect(px, py, 3 * u, 3 * u); }
+  }
+  window.SCENES = [s5, s1, s2, s3, s4, s7, s6];
+  window.SCENE_THUMB_T = [1.4, 3.2, 5.1, 6.4, 2.6, 1.2, 4.2];
 })();

@@ -37,10 +37,10 @@ header{position:absolute;z-index:5;left:0;right:0;top:0;display:flex;justify-con
 .logo b i:nth-child(1){width:22px;background:#ff4fd8}.logo b i:nth-child(2){width:17px;background:#5ef2ff}.logo b i:nth-child(3){width:12px;background:#ffd166}
 #ins{pointer-events:auto;border:0;border-radius:99px;padding:10px 16px;font:800 13px var(--body);color:#fff;background:rgba(255,255,255,.14);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer}
 #dock{position:absolute;z-index:5;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:12px;padding:10px;border-radius:30px;background:rgba(14,12,44,.55);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 0 0 1px rgba(255,255,255,.12)}
-#dock button{position:relative;width:min(62px,12.4vw);height:min(62px,12.4vw);border:0;padding:0;border-radius:19px;overflow:hidden;cursor:pointer;background:#111;opacity:.62;transform:scale(.9);transition:transform .35s cubic-bezier(.2,.9,.3,1.3),opacity .3s,box-shadow .3s}
+#dock button{position:relative;width:min(62px,10.8vw);height:min(62px,10.8vw);border:0;padding:0;border-radius:19px;overflow:hidden;cursor:pointer;background:#111;opacity:.62;transform:scale(.9);transition:transform .35s cubic-bezier(.2,.9,.3,1.3),opacity .3s,box-shadow .3s}
 #dock button canvas{width:100%;height:100%;display:block}
 #dock button[aria-current=true]{opacity:1;transform:translateY(-8px) scale(1.06);box-shadow:0 0 0 3px var(--c),0 10px 26px -4px var(--c)}
-@media (max-width:480px){#dock{gap:8px;padding:8px}}
+@media (max-width:480px){#dock{gap:6px;padding:8px}}
 .arr{position:absolute;z-index:5;top:50%;width:54px;height:54px;margin-top:-27px;border:0;border-radius:50%;background:rgba(255,255,255,.12);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font-size:22px;cursor:pointer;display:none}
 #pv{left:24px}#nx{right:24px}
 @media (min-width:760px){.arr{display:block}.arr[hidden]{display:none}}
@@ -58,7 +58,8 @@ header{position:absolute;z-index:5;left:0;right:0;top:0;display:flex;justify-con
 }
 .chips{margin-top:22px;display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:460px}
 .chips a{display:inline-flex;align-items:center;height:44px;padding:0 18px;border-radius:99px;font:800 15px var(--body);color:#fff;text-decoration:none;background:rgba(255,255,255,.13);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-.chips{margin-top:16px;gap:8px}.chips a{height:42px;padding:0 11px;font-size:14px}.chips a.tool{background:rgba(94,242,255,.16);color:#bff7ff}.chips a:hover{background:rgba(255,255,255,.22)}.go{border:0;cursor:pointer}
+.chips{margin-top:16px;gap:8px}.chips a{height:42px;padding:0 11px;font-size:14px}.tl{margin-top:18px;display:grid;gap:10px;width:min(100%,420px)}.tc{padding:12px 14px;border-radius:18px;background:rgba(255,255,255,.1);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);text-align:left}.tc b{display:block;font-size:16px}.tc span{display:block;color:var(--mut);font-size:13px;margin-top:2px}.tc p{margin:10px 0 0;display:flex;gap:8px}.tc a{display:inline-flex;align-items:center;height:38px;padding:0 16px;border-radius:99px;background:rgba(255,255,255,.14);color:#fff;text-decoration:none;font-weight:800;font-size:14px}.tc a.go2{background:var(--c);color:#04141a}
+.chips a.tool{background:rgba(94,242,255,.16);color:#bff7ff}.chips a:hover{background:rgba(255,255,255,.22)}.go{border:0;cursor:pointer}
 @media (min-width:900px) and (min-aspect-ratio:12/10){.chips{justify-content:flex-start}}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media (prefers-reduced-motion:reduce){.play{animation:none}#deck{transition:none}}
@@ -79,13 +80,17 @@ header{position:absolute;z-index:5;left:0;right:0;top:0;display:flex;justify-con
 <a class="slide" data-i="4" href="https://felykxzy.github.io/notely/?from=hub" style="--bgc:#1a0f35;--c:#ff4fd8" aria-label="Notely"><canvas></canvas>
 <div class="info"><div class="kicker">бесплатная музыка</div><h2>Notely</h2><p class="tag">Слушай, что нравится: плейлисты, текст песен и живые фоны.</p><span class="play"><i>▶</i>СЛУШАТЬ</span></div></a>
 
-<div class="slide soon" data-i="5" style="--bgc:#05040f;--c:#a77bff" role="group" aria-label="Секрет"><canvas></canvas>
+<section class="slide tools" data-i="5" style="--bgc:#06242b;--c:#5ef2ff" aria-label="Утилиты"><canvas></canvas>
+<div class="info"><div class="kicker">утилиты</div><h2>Инструменты</h2><p class="tag">Полезные штуки для игр. Бесплатно, код открыт.</p>
+<div class="tl"><div class="tc"><b>Дота-гайд</b><span>Винрейты героев, что собирать, против кого играть</span><p><a class="go2" href="dota/">Открыть</a><a href="https://github.com/Felykxzy/felykxzy.github.io/tree/main/dota">GitHub</a></p></div>
+<div class="tc"><b>Сборщик модов Minecraft</b><span>Моды для Prism за пару кликов (для компьютера)</span><p><a class="go2" href="minecraft/mc-modpack.zip" download>Скачать</a><a href="https://github.com/Felykxzy/felykxzy.github.io/tree/main/minecraft">GitHub</a></p></div></div></div></section>
+<div class="slide soon" data-i="6" style="--bgc:#05040f;--c:#a77bff" role="group" aria-label="Секрет"><canvas></canvas>
 <div class="info"><div class="kicker">секретно</div><h2>???</h2><p class="tag">Что-то новое уже в работе. Новые игры скоро, загляни позже.</p><span class="play">СКОРО</span></div></div>
 </main>
 <button class="arr" id="pv" type="button" aria-label="Назад">‹</button><button class="arr" id="nx" type="button" aria-label="Дальше">›</button>
 <nav id="dock" aria-label="Игры"></nav>
 <div id="how"><div><h3>Как установить</h3><p><b>iPhone:</b> открой в Safari, нажми «Поделиться» и выбери «На экран Домой».</p><p><b>Android:</b> в Chrome нажми меню ⋮ и выбери «Установить приложение».</p><p><b>Компьютер:</b> нажми значок установки справа в адресной строке.</p><button id="hx" type="button">Понятно</button></div></div>
 </div>
-<script src="scenes.js?v=12"></script>
-<script src="app.js?v=12"></script>
+<script src="scenes.js?v=13"></script>
+<script src="app.js?v=13"></script>
 </body></html>
